@@ -112,9 +112,11 @@ last lines of its output instead of silently returning to the tiles.
   closes and the launcher returns.
 - **shippy-gui** runs with uvx from `deploy`, from a working directory that
   holds its `config.ini` (it reads the file from the current directory).
-- uvx needs the network at each launch to check the branch, as on Windows
-  now. If the check fails, the tile retries with uv's offline mode so a
-  cached build still starts.
+- The apps are installed as uv tools for the `kiosk` user and upgraded from
+  `deploy` at each launch. If the upgrade fails (no internet), the installed
+  version starts. uvx's offline mode can't do this: tested with uv 0.12.9, it
+  refuses anything that comes from a git branch or tag, even when cached
+  (`docs/apps.md`).
 
 ### Printing
 
@@ -195,7 +197,6 @@ taken first.
   development setup, so real printing from the watcher is untested.
 - The launcher plus Firefox within the Chromebook's 2 GB of RAM. Firefox
   alone used about 840 MB.
-- uvx's offline fallback starts the cached build when GitHub is unreachable.
 
 ## Open questions
 
