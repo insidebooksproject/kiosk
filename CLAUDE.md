@@ -196,8 +196,16 @@ Bitwarden `Home WIFI 2.4G`) and `ibp-site-wifi` (Bitwarden `IBP WIFI`); the
 **placeholder** configs (no real API keys): the shipping tiles open but
 can't look up requests or buy postage. No Tailscale key, no log share.
 
-Not installed yet. Unknown until then: the model year, RAM, Wi-Fi chip and
-graphics (2008-2010 A1278s have Nvidia graphics, 2011-2012 Intel). The
+Not installed yet (2026-11-24). The first attempts stopped at the
+partitioner because the internal SSD (Patriot P210 128GB) was not usable:
+link CRC errors at 6 Gbps and no IDENTIFY at lower speeds, which came and
+went with reseating the hard-drive flex cable and with the bottom cover on
+or off. A replacement flex cable is on order; `libata.force=` options
+(`nologdir`, `1.5Gbps`, `noncq`) did not get around it. The serial's model
+code (DTY3) reads as the 13-inch Mid 2012 MacBook Pro (MacBookPro9,2: Intel
+HD 4000 graphics, Intel SATA and xHCI, matching the installer's logs);
+confirm with `cat /sys/class/dmi/id/product_name`. RAM and Wi-Fi chip are
+still unknown. The
 Broadcom `wl` driver step (`setup.d/30-broadcom.sh`) built in the VM with
 `KIOSK_TEST_BROADCOM_STA=1` but has not run on the hardware. Fill this in
 after the install, and wipe the stick (it holds the Wi-Fi passwords and the
