@@ -1,0 +1,14 @@
+# IBP station, feature shipping: upload the label-printer logs shortly after
+# boot and every 15 minutes. setup.d enables it only when
+# /etc/ibp-kiosk/log-upload.conf exists.
+[Unit]
+Description=Upload the IBP label-printer logs every 15 minutes
+ConditionPathExists=/etc/ibp-kiosk/log-upload.conf
+
+[Timer]
+OnBootSec=2min
+OnUnitActiveSec=15min
+AccuracySec=1min
+
+[Install]
+WantedBy=timers.target

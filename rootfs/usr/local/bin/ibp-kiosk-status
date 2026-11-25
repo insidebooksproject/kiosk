@@ -1,0 +1,163 @@
+#!/bin/sh
+# ibp-kiosk-status CHECK: one status check for the launcher's status strip.
+# Exit 0 = fine, 1 = problem, 2 = usage error. The first line of stdout is a
+# short text for a volunteer. Every external call has a timeout, so a check
+# finishes in well under 10 s and never hangs.
+#
+#   network           Wi-Fi or cable connection (NetworkManager)
+#   server            the IBP server answers GET /api/health
+#   printer-shipping  a PM-2411-BT shipping label printer is plugged in and
+#                     usable (from sysfs only: the printer allows one open at a
+#                     time and shippy may be printing, so it is never opened)
+#   printer-package   the print server on localhost:40121 sees a label printer
+#
+# For testing: IBP_SERVER_URL, IBP_KIOSK_PRINT_SERVER_URL, IBP_KIOSK_SYS and
+# IBP_KIOSK_DEV override the server, print server, /sys and /dev.
+set -u
+
+CONF_DIR=${IBP_KIOSK_CONF_DIR:-/etc/ibp-kiosk}
+# The IBP server. /etc/ibp-kiosk/apps.conf (optional, shell syntax) may set
+# IBP_SERVER_URL; the environment wins over both.
+env_server_url=${IBP_SERVER_URL:-}
+IBP_SERVER_URL=http://192.168.1.156
+if [ -r "$CONF_DIR/apps.conf" ]; then
+    # shellcheck source=/dev/null
+    . "$CONF_DIR/apps.conf"
+fi
+IBP_SERVER_URL=${env_server_url:-$IBP_SERVER_URL}
+PRINT_SERVER_URL=${IBP_KIOSK_PRINT_SERVER_URL:-http://localhost:40121}
+SYS=${IBP_KIOSK_SYS:-/sys}
+DEV=${IBP_KIOSK_DEV:-/dev}
+
+# PM-2411-BT: model in its IEEE 1284 device ID, or its USB ids (the vendor id
+# alone is shared by other devices). See ibp-printing docs/printers/pm2411bt.md.
+PM2411BT_MODEL=PM2411BT
+PM2411BT_VID=2e3c
+PM2411BT_PID=5760
+
+say() {
+    printf '%s\n' "$1"
+    exit "$2"
+}
+
+# nmcli -t escapes ":" and "\" in values with a backslash.
+nm_unescape() {
+    sed -e 's/\\:/:/g' -e 's/\\\\/\\/g'
+}
+
+check_network() {
+    command -v nmcli >/dev/null 2>&1 || say "Can't check the network" 1
+    devices=$(timeout 2 nmcli -t -f TYPE,STATE device 2>/dev/null) ||
+        say "Can't check the network" 1
+    wifi=no wired=no
+    printf '%s\n' "$devices" | grep -qx 'wifi:connected' && wifi=yes
+    printf '%s\n' "$devices" | grep -qx 'ethernet:connected' && wired=yes
+    if [ "$wifi" = yes ]; then
+        ssid=$(timeout 2 nmcli -t -f ACTIVE,SSID device wifi list --rescan no 2>/dev/null |
+            sed -n 's/^yes://p' | head -n 1 | nm_unescape)
+        what="Wi-Fi${ssid:+ $ssid}"
+    elif [ "$wired" = yes ]; then
+        what="network cable"
+    else
+        say "No network" 1
+    fi
+    # "unknown" (no connectivity check configured) counts as fine.
+    case $(timeout 2 nmcli networking connectivity 2>/dev/null) in
+    none | limited | portal) say "Connected to $what, but no internet" 1 ;;
+    esac
+    say "Connected to $what" 0
+}
+
+check_server() {
+    reply=$(curl -s --connect-timeout 3 -m 4 -w '\n%{http_code}' \
+        "$IBP_SERVER_URL/api/health" 2>/dev/null)
+    code=$(printf '%s\n' "$reply" | tail -n 1)
+    case $code in
+    200)
+        if printf '%s\n' "$reply" | grep -q '"status": *"ok"'; then
+            say "IBP server OK" 0
+        fi
+        say "IBP server not working right" 1
+        ;;
+    503) say "IBP server database problem" 1 ;;
+    000 | '') say "IBP server not reachable" 1 ;;
+    *) say "IBP server error ($code)" 1 ;;
+    esac
+}
+
+# The 1284 model (MDL: or MODEL:) of a usblp device, from sysfs.
+ieee1284_model() {
+    tr ';' '\n' <"$1/device/ieee1284_id" 2>/dev/null | awk -F: '
+        { key = toupper($1); gsub(/^[ \t]+|[ \t]+$/, "", key) }
+        key == "MDL" || key == "MODEL" {
+            sub(/^[^:]*:[ \t]*/, ""); sub(/[ \t]+$/, ""); print; exit
+        }'
+}
+
+# Names the volunteers use for the two printers, by serial number.
+printer_name() {
+    case $1 in
+    Q529E5299340263) echo " (BOB)" ;;
+    Q529E65K5250028) echo " (BETTY)" ;;
+    esac
+}
+
+check_printer_shipping() {
+    found=no problem=
+    for entry in "$SYS"/class/usbmisc/lp*; do
+        [ -e "$entry" ] || continue
+        usb=$(cd -P "$entry/device/.." 2>/dev/null && pwd) || usb=
+        vid=$(cat "$usb/idVendor" 2>/dev/null)
+        pid=$(cat "$usb/idProduct" 2>/dev/null)
+        model=$(ieee1284_model "$entry")
+        model_uc=$(printf '%s' "$model" | tr '[:lower:]' '[:upper:]')
+        if [ "$model_uc" != "$PM2411BT_MODEL" ] &&
+            [ "$vid:$pid" != "$PM2411BT_VID:$PM2411BT_PID" ]; then
+            continue
+        fi
+        found=yes
+        node=$DEV/usb/${entry##*/}
+        if [ ! -e "$node" ]; then
+            problem="Label printer not ready (no device file)"
+        elif [ ! -r "$node" ] || [ ! -w "$node" ]; then
+            problem="Label printer plugged in, but not allowed (udev rule missing?)"
+        else
+            serial=$(cat "$usb/serial" 2>/dev/null)
+            say "Label printer ready$(printer_name "$serial")" 0
+        fi
+    done
+    [ "$found" = yes ] && say "$problem" 1
+    # Plugged in, but not bound to usblp (no /dev/usb/lpN).
+    for usb in "$SYS"/bus/usb/devices/*; do
+        [ "$(cat "$usb/idVendor" 2>/dev/null)" = "$PM2411BT_VID" ] || continue
+        [ "$(cat "$usb/idProduct" 2>/dev/null)" = "$PM2411BT_PID" ] || continue
+        say "Label printer plugged in, but not detected (try replugging it)" 1
+    done
+    say "No label printer plugged in" 1
+}
+
+check_printer_package() {
+    reply=$(curl -s --connect-timeout 2 -m 4 "$PRINT_SERVER_URL/health" 2>/dev/null) ||
+        say "Label print server not running" 1
+    count=$(printf '%s\n' "$reply" | tr -d '\n' |
+        sed -n 's/.*"count": *\([0-9][0-9]*\).*/\1/p')
+    if ! printf '%s\n' "$reply" | grep -q '"status": *"ok"'; then
+        say "Label printer problem (see the print server log)" 1
+    fi
+    case $count in
+    '') say "Label print server not working right" 1 ;;
+    0) say "No label printer plugged in" 1 ;;
+    *) say "Label printer ready" 0 ;;
+    esac
+}
+
+case ${1:-} in
+network) check_network ;;
+server) check_server ;;
+printer-shipping) check_printer_shipping ;;
+printer-package) check_printer_package ;;
+*)
+    echo "usage: ibp-kiosk-status network|server|printer-shipping|printer-package" >&2
+    exit 2
+    ;;
+esac

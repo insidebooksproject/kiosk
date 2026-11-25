@@ -1,0 +1,22 @@
+// IBP station: let the kiosk user change the network from the admin screen's
+// Wi-Fi tile (nmtui), which needs NetworkManager's system settings. kiosk has
+// no password and no sudo, so without this nmtui can only look.
+//
+// Only while kiosk is the active local session (the tty1 session), and only
+// network settings: not the hostname, sleep, global DNS or checkpoints. A
+// user allowed to edit system connections can also read their saved Wi-Fi
+// passwords.
+polkit.addRule(function (action, subject) {
+    var allowed = [
+        "org.freedesktop.NetworkManager.network-control",
+        "org.freedesktop.NetworkManager.enable-disable-network",
+        "org.freedesktop.NetworkManager.enable-disable-wifi",
+        "org.freedesktop.NetworkManager.wifi.scan",
+        "org.freedesktop.NetworkManager.settings.modify.own",
+        "org.freedesktop.NetworkManager.settings.modify.system"
+    ];
+    if (subject.user == "kiosk" && subject.local && subject.active &&
+        allowed.indexOf(action.id) >= 0) {
+        return polkit.Result.YES;
+    }
+});
