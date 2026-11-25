@@ -1,0 +1,25 @@
+# IBP station, feature shipping: ibp-label-watcher from ibp-printing's
+# `deploy` branch, as a systemd user service of the kiosk user. It retries
+# labels shippy and shippy-gui saved in ~/Downloads/to-print because no
+# printer took them, and prints 4x6 labels saved straight into ~/Downloads.
+# Replaces the Windows "IBP Label Watcher" task. Linux has no message boxes:
+# what it does is only in its log, ~/.local/state/ibp-printing/logs/
+# printer-watcher.log, and in `journalctl --user -u ibp-kiosk-label-watcher`.
+#
+# Enabled for every user with `systemctl --global enable` by setup.d; the
+# condition keeps it to kiosk (not an admin's SSH login).
+[Unit]
+Description=IBP label watcher (prints labels the shipping apps could not)
+ConditionUser=kiosk
+
+[Service]
+Type=simple
+# Each start upgrades ibp-printing from GitHub first, then runs the
+# installed version even if that fails (ibp-kiosk-tool).
+ExecStart=/usr/local/bin/ibp-kiosk-tool ibp-printing ibp-label-watcher
+Restart=on-failure
+RestartSec=30
+TimeoutStartSec=infinity
+
+[Install]
+WantedBy=default.target
