@@ -15,7 +15,8 @@
 # --mem: 2G is the Chromebook, 4G (the default) a laptop. --iso defaults to
 # the newest build/ibp-kiosk-*.iso. Set VM_DISK=virtio to use a virtio disk
 # instead of NVMe (the installed system mounts root by UUID, so either works
-# after the install).
+# after the install). The display is a plain framebuffer (VM_VIDEO=VGA):
+# with VM_VIDEO=virtio-vga, terminal windows show stale frames in the VM.
 # Screen: VNC on localhost:5901. SSH: /usr/bin/ssh -p 2222 ibp@localhost
 # Monitor by hand, without socat:
 #   echo 'info status' | nc -U -q 1 build/vm/monitor.sock
@@ -74,7 +75,7 @@ exec qemu-system-x86_64 \
     -drive "if=pflash,format=raw,readonly=on,file=$ovmf/OVMF_CODE_4M.fd" \
     -drive "if=pflash,format=raw,file=$vm/vars.fd" \
     -device qemu-xhci -device usb-kbd -device usb-tablet \
-    -device virtio-vga \
+    -device "${VM_VIDEO:-VGA}" \
     -nic user,model=virtio-net-pci,hostfwd=tcp:127.0.0.1:2222-:22 \
     -display none -vnc 127.0.0.1:1 \
     -monitor "unix:$vm/monitor.sock,server,nowait" \
