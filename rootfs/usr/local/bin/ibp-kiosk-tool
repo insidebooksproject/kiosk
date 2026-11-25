@@ -1,0 +1,130 @@
+#!/bin/sh
+# ibp-kiosk-tool: run one of the IBP Python apps from its `deploy` branch.
+#
+#   ibp-kiosk-tool [--no-upgrade | --install-only] TOOL [COMMAND [ARG...]]
+#
+# Each TOOL is a persistent `uv tool` install in the calling user's home
+# (~/.local/share/uv/tools, executables in ~/.local/bin). Before running
+# COMMAND it upgrades the tool from GitHub, which picks up whatever the
+# `deploy` branch points at now. If that fails (no network), the version
+# already installed runs. A tool that was never installed needs the network
+# once.
+#
+# Why not `uvx --from git+...@deploy`, as on the Windows laptops: uvx's
+# --offline mode refuses to start anything from a git branch or tag, even
+# with a warm cache ("Remote Git fetches are not allowed"), so it has no
+# offline fallback. See docs/apps.md.
+#
+# TOOL is one of:
+#   shippy               shippy (CLI)
+#   shippy-gui           shippy-gui, without the `linux` extra (no pycups)
+#   ibp-printing         ibp-printing[watcher]: ibp-label-watcher, ibp-print-diag
+#   ibp-printing-server  ibp-printing[linux]: ibp-print-server (needs a
+#                        compiler and libcups2-dev to build pycups)
+#
+# --no-upgrade    run the installed version (install it only if missing)
+# --install-only  install or upgrade, then exit (setup.d, the print server's
+#                 update unit)
+set -u
+
+UV=${IBP_KIOSK_UV:-/usr/local/bin/uv}
+: "${HOME:?HOME is not set}"
+export UV_TOOL_DIR="${UV_TOOL_DIR:-$HOME/.local/share/uv/tools}"
+export UV_TOOL_BIN_DIR="${UV_TOOL_BIN_DIR:-$HOME/.local/bin}"
+# Debian's own Python 3.13, never a downloaded one (also set in
+# /etc/uv/uv.toml; repeated here so the environment can't change it).
+export UV_PYTHON_PREFERENCE=only-system
+export UV_PYTHON_DOWNLOADS=never
+STATE=${XDG_STATE_HOME:-$HOME/.local/state}/ibp-kiosk/tools
+UPGRADE_TIMEOUT=${IBP_KIOSK_UPGRADE_TIMEOUT:-90}
+INSTALL_TIMEOUT=${IBP_KIOSK_INSTALL_TIMEOUT:-900}
+
+GITHUB=https://github.com/jonkensta
+
+die() {
+    printf '%s\n' "$*" >&2
+    exit 1
+}
+
+mode=run
+case ${1:-} in
+--no-upgrade) mode=no-upgrade; shift ;;
+--install-only) mode=install-only; shift ;;
+esac
+
+key=${1:-}
+[ -n "$key" ] || die "usage: ibp-kiosk-tool [--no-upgrade|--install-only] TOOL [COMMAND [ARG...]]"
+shift
+
+case $key in
+shippy)
+    name=shippy label="shippy"
+    spec="shippy @ git+$GITHUB/shippy.git@deploy" ;;
+shippy-gui)
+    name=shippy-gui label="Ship Manual (shippy-gui)"
+    spec="shippy-gui @ git+$GITHUB/shippy-gui.git@deploy" ;;
+ibp-printing)
+    name=ibp-printing label="the label printer tools (ibp-printing)"
+    spec="ibp-printing[watcher] @ git+$GITHUB/ibp-printing.git@deploy" ;;
+ibp-printing-server)
+    name=ibp-printing label="the print server (ibp-printing)"
+    spec="ibp-printing[linux] @ git+$GITHUB/ibp-printing.git@deploy" ;;
+*)
+    die "ibp-kiosk-tool: unknown tool '$key'" ;;
+esac
+
+if [ "$mode" != install-only ] && [ $# -eq 0 ]; then
+    die "ibp-kiosk-tool: no command given for $key"
+fi
+
+[ -x "$UV" ] || die "Can't start $label: uv is not installed on this machine ($UV)."
+
+mkdir -p "$STATE" || die "Can't start $label: can't create $STATE."
+receipt=$UV_TOOL_DIR/$name/uv-receipt.toml
+stamp=$STATE/$key.spec
+
+# One install or upgrade of a tool at a time (the label watcher and
+# ibp-print-diag share ibp-printing). fd 9 is closed again before the app
+# runs, so a long-running app never holds the lock.
+exec 9>"$STATE/$key.lock"
+flock -w 600 9 || die "Can't start $label: another install of it is still running."
+
+installed() {
+    [ -f "$receipt" ] && [ "$(cat "$stamp" 2>/dev/null)" = "$spec" ]
+}
+
+failed=0
+if ! installed; then
+    # Not installed, or installed from a different spec (an older version of
+    # this script): install it fresh. Needs the network.
+    printf 'Installing %s. The first time takes a few minutes...\n' "$label" >&2
+    if [ -f "$receipt" ]; then
+        reinstall=--reinstall
+    else
+        reinstall=
+    fi
+    # shellcheck disable=SC2086 # $reinstall is empty or one flag
+    if timeout -k 10 "$INSTALL_TIMEOUT" "$UV" tool install -q $reinstall "$spec" >&2; then
+        printf '%s\n' "$spec" >"$stamp"
+    elif [ -f "$receipt" ]; then
+        failed=1
+        printf 'Could not update %s (no internet?). Starting the version already on this machine.\n' "$label" >&2
+    else
+        die "Could not download $label. Check that this machine is on the internet, then try again."
+    fi
+elif [ "$mode" != no-upgrade ]; then
+    printf 'Checking for updates to %s...\n' "$label" >&2
+    if ! timeout -k 10 "$UPGRADE_TIMEOUT" "$UV" tool upgrade -q "$name" >&2; then
+        failed=1
+        printf 'Could not check for updates (no internet?). Starting the version already on this machine.\n' >&2
+    fi
+fi
+
+exec 9>&-
+
+[ "$mode" = install-only ] && exit "$failed"
+
+cmd=$1
+shift
+[ -x "$UV_TOOL_BIN_DIR/$cmd" ] || die "Can't start $label: $UV_TOOL_BIN_DIR/$cmd is missing. Ask an IBP admin to reinstall it."
+exec "$UV_TOOL_BIN_DIR/$cmd" "$@"
