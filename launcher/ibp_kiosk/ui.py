@@ -266,7 +266,7 @@ class MainWindow(QWidget):
         self._build_confirm_page()
         self._build_admin_page()
         self._build_message_page()
-        self.error_page = self._message_page(
+        self.error_page = self._text_page(
             "This computer isn't set up correctly.",
             "Tell a coordinator.",
             config_error,
@@ -336,7 +336,7 @@ class MainWindow(QWidget):
         self.message_title = _label("", "heading")
         self.message_page = _page(self.message_title, center=True)
 
-    def _message_page(self, title: str, sentence: str, detail: str) -> QWidget:
+    def _text_page(self, title: str, sentence: str, detail: str) -> QWidget:
         small = _label(detail, "small")
         small.setTextFormat(Qt.TextFormat.PlainText)
         return _page(_label(title, "heading"), _label(sentence, "sentence"), small, center=True)
