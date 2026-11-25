@@ -16,6 +16,12 @@ pref("toolkit.startup.max_resumed_crashes", -1, locked);
 pref("browser.crashReports.unsubmittedCheck.enabled", false, locked);
 pref("browser.crashReports.unsubmittedCheck.autoSubmit2", false, locked);
 
+// IBP Requests (http://192.168.1.156/, a private address) posts labels to
+// the print server on http://localhost:40121. Firefox's local network access
+// checks skip private-to-localhost requests by default (ESR 153); lock that,
+// so a changed default can't start blocking or prompting.
+pref("network.lna.local-network-to-localhost.skip-checks", true, locked);
+
 // Nothing to ask on the way out or on the way in.
 pref("browser.warnOnQuit", false, locked);
 pref("browser.warnOnQuitShortcut", false, locked);
