@@ -1,0 +1,94 @@
+#!/bin/sh
+# ibp-kiosk-log-upload: copy the kiosk user's label-printer logs to this
+# station's Samba share on ibp-server, into a folder named after this host.
+# Run as root by ibp-kiosk-log-upload.service (every 15 minutes, from its
+# timer), which gives it a private mount namespace and a root-only runtime
+# directory. Replaces the Windows laptops' "IBP Log Upload" task (robocopy).
+#
+# /etc/ibp-kiosk/log-upload.conf (root 0600), one VAR=value per line:
+#   SHARE=//host/share     e.g. //100.119.68.125/ibp-logs-<station>
+#   USERNAME=...
+#   PASSWORD=...
+#   DOMAIN=...             optional
+# Values may be in single or double quotes. The file is read, not sourced.
+#
+# It only adds and updates files on the share (rsync without --delete):
+# nothing there is ever deleted. The password goes to mount.cifs in a
+# credentials file, never on a command line.
+set -eu
+
+CONF=${IBP_KIOSK_LOG_UPLOAD_CONF:-/etc/ibp-kiosk/log-upload.conf}
+LOGS=${IBP_KIOSK_LOG_DIR:-/home/kiosk/.local/state/ibp-printing/logs}
+RUN=${RUNTIME_DIRECTORY:-/run/ibp-kiosk-log-upload}
+
+log() {
+    printf 'ibp-kiosk-log-upload: %s\n' "$*" >&2
+}
+
+# The value of KEY in $CONF: the last KEY= line, one pair of surrounding
+# quotes removed.
+conf_value() {
+    sed -n "s/^[[:space:]]*$1[[:space:]]*=//p" "$CONF" | tail -n 1 | sed \
+        -e "s/^[[:space:]]*'\\(.*\\)'[[:space:]]*\$/\\1/" \
+        -e 's/^[[:space:]]*"\(.*\)"[[:space:]]*$/\1/'
+}
+
+if [ ! -r "$CONF" ]; then
+    log "no $CONF; nothing to do"
+    exit 0
+fi
+if [ ! -d "$LOGS" ]; then
+    log "no logs yet ($LOGS); nothing to do"
+    exit 0
+fi
+
+share=$(conf_value SHARE)
+user=$(conf_value USERNAME)
+password=$(conf_value PASSWORD)
+domain=$(conf_value DOMAIN)
+case $share in
+//?*/?*) ;;
+*)
+    log "SHARE in $CONF must look like //host/share (got '$share')"
+    exit 1
+    ;;
+esac
+if [ -z "$user" ] || [ -z "$password" ]; then
+    log "USERNAME and PASSWORD must be set in $CONF"
+    exit 1
+fi
+
+host=$(uname -n)
+umask 077
+mkdir -p "$RUN"
+mnt=$RUN/share
+cred=$RUN/credentials
+mkdir -p "$mnt"
+
+cleanup() {
+    rm -f "$cred"
+    if mountpoint -q "$mnt"; then
+        umount "$mnt" || umount -l "$mnt" || true
+    fi
+}
+trap cleanup EXIT
+trap 'exit 1' HUP INT TERM
+
+# printf is a shell builtin: the password is never an argument of a process.
+{
+    printf 'username=%s\n' "$user"
+    printf 'password=%s\n' "$password"
+    if [ -n "$domain" ]; then
+        printf 'domain=%s\n' "$domain"
+    fi
+} >"$cred"
+
+timeout 60 mount -t cifs "$share" "$mnt" \
+    -o "credentials=$cred,uid=0,gid=0,noperm,soft,nosuid,nodev,noexec"
+rm -f "$cred"
+
+mkdir -p "$mnt/$host"
+# -rt: files and times only (the share decides owners and modes);
+# --modify-window: SMB keeps coarser timestamps; no --delete, ever.
+timeout 480 rsync -rt --modify-window=2 --timeout=60 "$LOGS/" "$mnt/$host/"
+log "copied $LOGS to $share/$host"

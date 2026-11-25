@@ -1,0 +1,23 @@
+# IBP station, feature shipping: copy the kiosk user's label-printer logs to
+# this station's Samba share on ibp-server. Started by
+# ibp-kiosk-log-upload.timer; replaces the Windows "IBP Log Upload" task.
+# Does nothing unless /etc/ibp-kiosk/log-upload.conf exists.
+[Unit]
+Description=Upload the IBP label-printer logs to the server
+ConditionPathExists=/etc/ibp-kiosk/log-upload.conf
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/local/bin/ibp-kiosk-log-upload
+# The share is mounted in this service's own mount namespace, so it vanishes
+# when the service ends, even if the script is killed. The credentials file
+# lives in the runtime directory (root only), removed at the end.
+PrivateMounts=yes
+PrivateTmp=yes
+RuntimeDirectory=ibp-kiosk-log-upload
+RuntimeDirectoryMode=0700
+TimeoutStartSec=10min
+Nice=10
+IOSchedulingClass=idle
