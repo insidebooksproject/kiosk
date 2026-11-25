@@ -12,6 +12,10 @@
 #                                    installer uses it too. Set the SSID to
 #                                    "" for none (then installing needs an
 #                                    Ethernet cable)
+#   KIOSK_SITE_WIFI_SSID, KIOSK_SITE_WIFI_PSK
+#                                    optional second Wi-Fi, saved as
+#                                    ibp-site-wifi (IBP's network when
+#                                    installing at home). Not asked for
 #   KIOSK_ADMIN_PASSWORD             password for the "ibp" admin (sudo, console)
 #   KIOSK_SSH_KEYS                   authorized_keys file for "ibp"
 #                                    (default ~/.ssh/id_ed25519.pub)
@@ -26,7 +30,8 @@
 # KIOSK_TEST=1 builds a test ISO with no real secrets: admin password
 # "testpw", no Wi-Fi, placeholder app configs and log share, profile
 # "shipping" and hostname "test-station" unless set. SSH keys are used if
-# found. Never put a test ISO on a real machine.
+# found. Never put a test ISO on a real machine. KIOSK_TEST_BROADCOM_STA=1
+# makes the install build the Broadcom "wl" Wi-Fi driver without the hardware.
 set -euo pipefail
 
 cd "$(dirname "$0")"
@@ -87,6 +92,14 @@ if [ -n "$KIOSK_WIFI_SSID" ]; then
         die "a WPA2 password is 8 to 63 characters"
     fi
     no_newlines "$KIOSK_WIFI_SSID" "$KIOSK_WIFI_PSK"
+fi
+KIOSK_SITE_WIFI_SSID=${KIOSK_SITE_WIFI_SSID:-}
+KIOSK_SITE_WIFI_PSK=${KIOSK_SITE_WIFI_PSK:-}
+if [ -n "$KIOSK_SITE_WIFI_SSID" ]; then
+    if [ ${#KIOSK_SITE_WIFI_PSK} -lt 8 ] || [ ${#KIOSK_SITE_WIFI_PSK} -gt 63 ]; then
+        die "a WPA2 password is 8 to 63 characters (KIOSK_SITE_WIFI_PSK)"
+    fi
+    no_newlines "$KIOSK_SITE_WIFI_SSID" "$KIOSK_SITE_WIFI_PSK"
 fi
 
 if [ -z "${KIOSK_ADMIN_PASSWORD:-}" ]; then
@@ -176,21 +189,21 @@ printf '%s\n' "$KIOSK_PROFILE" >"$payload/kiosk/profile"
 # Secrets, every one optional (names per CLAUDE.md)
 secrets=$payload/kiosk/secrets
 [ -z "$KIOSK_SSH_KEYS" ] || cp "$KIOSK_SSH_KEYS" "$secrets/authorized_keys"
-if [ -n "$KIOSK_WIFI_SSID" ]; then
+nmconnection() {  # nmconnection ID SSID PSK
     mkdir -p "$secrets/wifi"
-    cat >"$secrets/wifi/ibp-wifi.nmconnection" <<EOF
+    cat >"$secrets/wifi/$1.nmconnection" <<EOF
 [connection]
-id=ibp-wifi
+id=$1
 type=wifi
 autoconnect=true
 
 [wifi]
 mode=infrastructure
-ssid=$KIOSK_WIFI_SSID
+ssid=$2
 
 [wifi-security]
 key-mgmt=wpa-psk
-psk=$KIOSK_WIFI_PSK
+psk=$3
 
 [ipv4]
 method=auto
@@ -198,7 +211,12 @@ method=auto
 [ipv6]
 method=auto
 EOF
-fi
+}
+[ -z "$KIOSK_WIFI_SSID" ] || nmconnection ibp-wifi "$KIOSK_WIFI_SSID" "$KIOSK_WIFI_PSK"
+[ -z "$KIOSK_SITE_WIFI_SSID" ] ||
+    nmconnection ibp-site-wifi "$KIOSK_SITE_WIFI_SSID" "$KIOSK_SITE_WIFI_PSK"
+# VM tests: build the Broadcom wl driver without the hardware (setup.d/30)
+[ "${KIOSK_TEST_BROADCOM_STA:-}" != 1 ] || : >"$secrets/force-broadcom-sta"
 [ -z "$KIOSK_TAILSCALE_AUTHKEY" ] ||
     printf '%s\n' "$KIOSK_TAILSCALE_AUTHKEY" >"$secrets/tailscale-authkey"
 
