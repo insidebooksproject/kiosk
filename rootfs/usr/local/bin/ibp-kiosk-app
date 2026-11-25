@@ -1,0 +1,220 @@
+#!/bin/sh
+# ibp-kiosk-app NAME: start one IBP station app in the foreground. It returns
+# when the app closes, with the app's exit status. If something the app needs
+# is missing, it prints one line for the volunteer on stderr and exits 1
+# (2 for a usage error); the launcher shows that line.
+#
+#   portal           Firefox, kiosk mode, TDCJ Book Portal, own profile
+#   requests         Firefox, kiosk mode, IBP frontend, own profile
+#   ship-individual  shippy individual, full-screen terminal
+#   ship-bulk        shippy bulk, full-screen terminal
+#   ship-manual      shippy-gui
+#   wifi             nmtui, full-screen terminal
+#   print-diag       ibp-print-diag, full-screen terminal, waits for a key
+#
+# How each one runs, and why: docs/apps.md in the ibp-kiosk repo.
+#
+# For testing, every path can be overridden from the environment
+# (IBP_KIOSK_CONF_DIR, IBP_KIOSK_SHIPPY_CONFIG, IBP_KIOSK_SHIPPY_GUI_DIR,
+# IBP_KIOSK_FIREFOX_DIR, IBP_KIOSK_FOOT_CONFIG, IBP_KIOSK_UV,
+# IBP_KIOSK_TOOL), and IBP_KIOSK_DRY_RUN=1 prints the command instead of
+# running it.
+set -u
+
+CONF_DIR=${IBP_KIOSK_CONF_DIR:-/etc/ibp-kiosk}
+
+# The start pages. /etc/ibp-kiosk/apps.conf (optional, shell syntax) may set
+# PORTAL_URL and REQUESTS_URL, e.g. if the server's address changes.
+PORTAL_URL=https://bookportal.tdcj.texas.gov/BookPortal/protected/dashboard.action
+REQUESTS_URL=http://192.168.1.156/
+if [ -r "$CONF_DIR/apps.conf" ]; then
+    # shellcheck source=/dev/null
+    . "$CONF_DIR/apps.conf"
+fi
+
+SHIPPY_CONFIG=${IBP_KIOSK_SHIPPY_CONFIG:-$CONF_DIR/shippy.ini}
+SHIPPY_GUI_DIR=${IBP_KIOSK_SHIPPY_GUI_DIR:-$HOME/.config/shippy-gui}
+FIREFOX_DIR=${IBP_KIOSK_FIREFOX_DIR:-$HOME/.local/share/ibp-kiosk/firefox}
+FOOT_CONFIG=${IBP_KIOSK_FOOT_CONFIG:-$CONF_DIR/foot.ini}
+UV=${IBP_KIOSK_UV:-/usr/local/bin/uv}
+
+case $0 in
+*/*) self=$0 ;;
+*) self=$(command -v -- "$0") ;;
+esac
+TOOL=${IBP_KIOSK_TOOL:-$(dirname -- "$self")/ibp-kiosk-tool}
+
+die() {
+    printf '%s\n' "$*" >&2
+    exit 1
+}
+
+usage() {
+    echo "usage: ibp-kiosk-app portal|requests|ship-individual|ship-bulk|ship-manual|wifi|print-diag" >&2
+    exit 2
+}
+
+need() {
+    command -v "$1" >/dev/null 2>&1 || die "$2"
+}
+
+# exec the command, or with IBP_KIOSK_DRY_RUN=1 just print it.
+run() {
+    if [ "${IBP_KIOSK_DRY_RUN:-0}" = 1 ]; then
+        printf '%s\n' "$*"
+        exit 0
+    fi
+    exec "$@"
+}
+
+need_uv() {
+    [ -x "$UV" ] || die "$1 can't start: uv is not installed on this machine. Ask an IBP admin."
+}
+
+# ---------------------------------------------------------------- Firefox
+
+# A Firefox just closed by the Home key may still be writing its profile.
+# Wait for it (it is ours: its command line names this profile), then make
+# sure it is gone, so the new one doesn't say "Firefox is already running".
+wait_for_old_firefox() {
+    profile=$1
+    target=$(readlink "$profile/lock" 2>/dev/null) || return 0
+    pid=${target##*+}
+    case $pid in '' | *[!0-9]*) return 0 ;; esac
+    tries=0
+    while kill -0 "$pid" 2>/dev/null; do
+        tr '\0' '\n' <"/proc/$pid/cmdline" 2>/dev/null | grep -qxF -- "$profile" || return 0
+        tries=$((tries + 1))
+        case $tries in
+        20) kill -TERM "$pid" 2>/dev/null ;;
+        30) kill -KILL "$pid" 2>/dev/null ;;
+        40) return 0 ;;
+        esac
+        sleep 0.5
+    done
+}
+
+firefox() {
+    name=$1 url=$2
+    need firefox-esr "Firefox is not installed on this machine. Ask an IBP admin."
+    profile=$FIREFOX_DIR/$name
+    mkdir -p "$profile" || die "Can't create the Firefox profile $profile."
+    wait_for_old_firefox "$profile"
+    # The start page is per profile (policies.json is shared by both tiles,
+    # so it can't set it). Firefox reads user.js at every start.
+    cat >"$profile/user.js" <<EOF || die "Can't write $profile/user.js."
+// Written by ibp-kiosk-app at each start; edits are lost.
+user_pref("browser.startup.homepage", "$url");
+EOF
+    export MOZ_CRASHREPORTER_DISABLE=1 MOZ_ENABLE_WAYLAND=1
+    # --name sets the Wayland app_id (labwc window rules can match it).
+    run firefox-esr --kiosk --no-remote --profile "$profile" \
+        --name "ibp-kiosk-$name" "$url"
+}
+
+# --------------------------------------------------------------- terminal
+
+# Run "ibp-kiosk-app --in-terminal NAME" in a full-screen foot window. foot
+# exits when that command does.
+terminal() {
+    name=$1 title=$2
+    need foot "The terminal (foot) is not installed on this machine. Ask an IBP admin."
+    if [ -r "$FOOT_CONFIG" ]; then
+        run foot --config="$FOOT_CONFIG" --app-id="ibp-kiosk-$name" \
+            --title="$title" --fullscreen -- "$self" --in-terminal "$name"
+    fi
+    run foot --app-id="ibp-kiosk-$name" --title="$title" --fullscreen \
+        -- "$self" --in-terminal "$name"
+}
+
+# Show MESSAGE and wait for one key. Keys typed earlier (a scanner's Enter,
+# say) are thrown away first so they can't dismiss it unseen.
+pause() {
+    printf '\n%s\n' "$1"
+    [ -t 0 ] || return 0
+    old=$(stty -g)
+    stty -icanon -echo min 0 time 0
+    cat >/dev/null
+    stty min 1
+    dd bs=1 count=1 >/dev/null 2>&1
+    stty "$old"
+}
+
+in_terminal() {
+    # Ctrl+C reaches the app, not this shell (a handler, unlike an ignored
+    # signal, is not inherited), so the pause below still runs.
+    trap : INT
+    case $1 in
+    ship-individual | ship-bulk)
+        mode=${1#ship-}
+        "$TOOL" shippy shippy --config "$SHIPPY_CONFIG" "$mode"
+        rc=$?
+        if [ "$rc" -ne 0 ]; then
+            pause "shippy stopped (exit status $rc). Read the message above, then press any key to close."
+        fi
+        exit "$rc"
+        ;;
+    wifi)
+        nmtui
+        rc=$?
+        [ "$rc" -eq 0 ] || pause "nmtui stopped (exit status $rc). Press any key to close."
+        exit "$rc"
+        ;;
+    print-diag)
+        "$TOOL" --no-upgrade ibp-printing ibp-print-diag
+        rc=$?
+        pause "Done (exit status $rc). Press any key to close."
+        exit "$rc"
+        ;;
+    *)
+        usage
+        ;;
+    esac
+}
+
+# ------------------------------------------------------------------- main
+
+[ $# -ge 1 ] || usage
+
+if [ "$1" = --in-terminal ]; then
+    [ $# -eq 2 ] || usage
+    in_terminal "$2"
+fi
+
+[ $# -eq 1 ] || usage
+
+case $1 in
+portal)
+    firefox portal "$PORTAL_URL"
+    ;;
+requests)
+    firefox requests "$REQUESTS_URL"
+    ;;
+ship-individual | ship-bulk)
+    [ -r "$SHIPPY_CONFIG" ] || die "Shipping is not set up on this machine: $SHIPPY_CONFIG is missing or not readable. Ask an IBP admin."
+    need_uv shippy
+    if [ "$1" = ship-bulk ]; then
+        terminal "$1" "Ship Bulk"
+    fi
+    terminal "$1" "Ship Individual"
+    ;;
+ship-manual)
+    [ -r "$SHIPPY_GUI_DIR/config.ini" ] || die "Ship Manual is not set up on this machine: $SHIPPY_GUI_DIR/config.ini is missing or not readable. Ask an IBP admin."
+    need_uv "Ship Manual"
+    cd "$SHIPPY_GUI_DIR" || die "Can't open $SHIPPY_GUI_DIR."
+    # Native Wayland under labwc; XWayland only if that fails.
+    export QT_QPA_PLATFORM="${QT_QPA_PLATFORM:-wayland;xcb}"
+    run "$TOOL" shippy-gui shippy-gui
+    ;;
+wifi)
+    need nmtui "nmtui is not installed on this machine. Ask an IBP admin."
+    terminal wifi "Wi-Fi"
+    ;;
+print-diag)
+    need_uv "Printer check"
+    terminal print-diag "Printer check"
+    ;;
+*)
+    usage
+    ;;
+esac
