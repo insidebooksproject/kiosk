@@ -107,8 +107,9 @@ Nvidia graphics, driven by nouveau), log in over SSH and add
 
 - **Off/on:** closing the lid or pressing the power button shuts down
   cleanly; it never suspends. The power button starts it again.
-- **Closing the browser:** Firefox is an ordinary window with tabs; its
-  close button (top right) returns to the tiles.
+- **Closing an app:** the ✕ at the top right returns to the tiles, in
+  Firefox (an ordinary window with tabs) and in Ship Individual and Ship
+  Bulk, whose title bar also names the mode.
 - **Home key:** the Windows (Super) key on its own, or F12, closes the
   current app and shows the tiles. On the Chromebook it is the Search key.
 - **Admin console:** Ctrl+Alt+F2, log in as `ibp`. Ctrl+Alt+F1 returns to
@@ -158,8 +159,9 @@ and admin screen, installed as `/etc/ibp-kiosk/station.toml`).
 The session: getty logs `kiosk` in on tty1, its `~/.bash_profile` runs
 `ibp-kiosk-session`, which runs
 `labwc -C /etc/ibp-kiosk/labwc -S ibp-kiosk-launcher`. labwc reads only that
-directory: `rc.xml` (main windows maximized without decorations, dialogs
-keep a title bar with a close button; the Home key; no menus, desktops or
+directory: `rc.xml` (main windows maximized without decorations, except the
+terminal tiles, whose title bar names the mode; dialogs keep a title bar
+with a close button; the Home key; no menus, desktops or
 other default bindings), `environment` and `autostart` (a dark
 background). When the launcher exits, labwc exits and getty starts over.
 

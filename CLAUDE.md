@@ -48,7 +48,7 @@ installer this one grew from.
 | `ibp-kiosk-app portal` | Firefox (an ordinary window with tabs, not kiosk mode; its close button returns to the tiles) on the TDCJ Book Portal, own profile |
 | `ibp-kiosk-app requests` | The same on the IBP frontend, own profile |
 | `ibp-kiosk-app packages` | The same on the IBP frontend's packages page (`/packages`), in the `requests` profile |
-| `ibp-kiosk-app ship-individual` / `ship-bulk` | shippy in a full-screen terminal |
+| `ibp-kiosk-app ship-individual` / `ship-bulk` | shippy in a maximized terminal whose title bar names the mode and has a close button |
 | `ibp-kiosk-app ship-manual` | shippy-gui |
 | `ibp-kiosk-app wifi` | `nmtui` in a terminal (admin screen) |
 | `ibp-kiosk-app print-diag` | `ibp-print-diag` in a terminal that stays open until a key is pressed (admin screen) |

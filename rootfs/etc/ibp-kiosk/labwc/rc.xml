@@ -30,11 +30,25 @@
 
   <!-- Dialogs keep a title bar with only a close button: no minimize (a
        minimized window has no way back here) and no maximize. -->
+  <!-- The theme holds only the close button's picture
+       (/usr/share/themes/IBP-Kiosk/labwc); colours and sizes are in
+       themerc-override here. -->
   <theme>
+    <name>IBP-Kiosk</name>
     <titlebar>
       <layout>:close</layout>
     </titlebar>
     <cornerRadius>0</cornerRadius>
+    <font place="ActiveWindow">
+      <name>DejaVu Sans</name>
+      <size>16</size>
+      <weight>bold</weight>
+    </font>
+    <font place="InactiveWindow">
+      <name>DejaVu Sans</name>
+      <size>16</size>
+      <weight>bold</weight>
+    </font>
   </theme>
 
   <!-- The Home key: Super alone (pressed and released with no other key),
@@ -119,6 +133,13 @@
     <windowRule type="normal" serverDecoration="no">
       <action name="Maximize" />
     </windowRule>
+    <!-- The terminal tiles (ibp-kiosk-app runs foot with these app ids) keep
+         a title bar: it names the mode ("Ship Bulk") for as long as the app
+         is open, and its close button returns to the tiles. A later rule
+         wins over the one above. Colours are in themerc-override. -->
+    <windowRule identifier="ibp-kiosk-ship-*" serverDecoration="yes" />
+    <windowRule identifier="ibp-kiosk-wifi" serverDecoration="yes" />
+    <windowRule identifier="ibp-kiosk-print-diag" serverDecoration="yes" />
   </windowRules>
 
 </labwc_config>

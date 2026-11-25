@@ -36,10 +36,10 @@ the base system and the apps is in `CLAUDE.md`; the background is in
 | `portal` | `firefox-esr --no-remote --profile ~/.local/share/ibp-kiosk/firefox/portal --name ibp-kiosk-portal https://bookportal.tdcj.texas.gov/BookPortal/protected/dashboard.action` |
 | `requests` | the same with profile `requests`, app_id `ibp-kiosk-requests`, on `http://192.168.1.156/` |
 | `packages` | the same as `requests` (same profile and app_id), on `http://192.168.1.156/packages` |
-| `ship-individual`, `ship-bulk` | `foot --fullscreen` running `shippy --config /etc/ibp-kiosk/shippy.ini individual` / `bulk` |
+| `ship-individual`, `ship-bulk` | `foot --maximized` running `shippy --config /etc/ibp-kiosk/shippy.ini individual` / `bulk` |
 | `ship-manual` | `shippy-gui`, from `/home/kiosk/.config/shippy-gui` (it reads `config.ini` from its working directory) |
-| `wifi` | `foot --fullscreen` running `nmtui` |
-| `print-diag` | `foot --fullscreen` running `ibp-print-diag`, then "press any key" |
+| `wifi` | `foot --maximized` running `nmtui` |
+| `print-diag` | `foot --maximized` running `ibp-print-diag`, then "press any key" |
 
 `ibp-kiosk-app` stays in the foreground (it `exec`s the app, so the launcher's
 SIGTERM to the process group reaches the app itself) and exits with the
@@ -173,7 +173,12 @@ then with `sudo -u kiosk -H uv cache prune`.
 ### Ship Individual, Ship Bulk (foot)
 
 `foot --config=/etc/ibp-kiosk/foot.ini --app-id=ibp-kiosk-ship-individual
---fullscreen -- ibp-kiosk-app --in-terminal ship-individual`. Inside, shippy
+--maximized -- ibp-kiosk-app --in-terminal ship-individual`. labwc gives the
+window a title bar with the tile's name ("Ship Individual", "Ship Bulk"), so
+the screen always says which mode is open, and a close button that returns
+to the tiles (window rules in `rc.xml`; colours and the button size in
+`themerc-override`; the button's picture in
+`/usr/share/themes/IBP-Kiosk/labwc`). Inside, shippy
 runs through `ibp-kiosk-tool` (so the update check is visible on screen). The
 terminal closes when shippy exits 0 or 130 (130 is an unhandled Ctrl+C;
 shippy's own "Press Ctrl+C to quit" at the no-printer prompt exits 1 today,
@@ -184,7 +189,7 @@ first, and the status goes to the journal (`ibp-kiosk-app`). Either way the
 launcher then shows the tiles, not its failure screen: the volunteer has
 already read the error where it was printed. foot runs with
 `--log-level=error`, so its own warnings never show up as the reason an app
-stopped. The Home key closes it at any time.
+stopped. The Home key or the close button closes it at any time.
 
 `foot.ini`: DejaVu Sans Mono 16 pt (about 150 x 45 on a 1920x1080 screen),
 10000 lines of scrollback, and no key that starts another program (no new

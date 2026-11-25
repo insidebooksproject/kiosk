@@ -1,0 +1,15 @@
+# Title bars (the terminal tiles and dialogs), in the launcher's colours.
+# labwc reads this on top of its built-in theme; see labwc-theme(5).
+window.active.title.bg.color: #14213d
+window.inactive.title.bg.color: #14213d
+window.active.label.text.color: #ffffff
+window.inactive.label.text.color: #ffffff
+window.label.text.justify: center
+window.titlebar.padding.height: 6
+# A close button big enough to hit (the default is 26).
+window.button.width: 44
+window.button.height: 44
+window.active.button.unpressed.image.color: #ffffff
+window.inactive.button.unpressed.image.color: #ffffff
+window.active.border.color: #14213d
+window.inactive.border.color: #14213d
