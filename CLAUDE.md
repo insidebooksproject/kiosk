@@ -184,3 +184,21 @@ Known rough edges:
   the terminal tiles first on real hardware.
 - The repo is local only (no GitHub remote yet), so `../bootstrap.sh` doesn't
   clone it.
+
+## Machines
+
+### MacBook `ibp-april` (model A1278)
+
+Installer stick written 2026-11-24 (the 14.6 GB USB flash drive): profile
+`shipping`, hostname `ibp-april`. Wi-Fi profiles `ibp-wifi` (home 2.4 GHz,
+Bitwarden `Home WIFI 2.4G`) and `ibp-site-wifi` (Bitwarden `IBP WIFI`); the
+`ibp` admin password is Bitwarden `ibp-kiosk`. shippy and shippy-gui have
+**placeholder** configs (no real API keys): the shipping tiles open but
+can't look up requests or buy postage. No Tailscale key, no log share.
+
+Not installed yet. Unknown until then: the model year, RAM, Wi-Fi chip and
+graphics (2008-2010 A1278s have Nvidia graphics, 2011-2012 Intel). The
+Broadcom `wl` driver step (`setup.d/30-broadcom.sh`) built in the VM with
+`KIOSK_TEST_BROADCOM_STA=1` but has not run on the hardware. Fill this in
+after the install, and wipe the stick (it holds the Wi-Fi passwords and the
+admin password hash).
