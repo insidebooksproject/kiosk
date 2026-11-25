@@ -157,5 +157,30 @@ the installed profile.
 
 ## State
 
-Nothing has been installed on real hardware. See "To verify" in
-`docs/design.md`.
+Built 2026-11-24. Nothing has been installed on real hardware.
+
+Tested in the QEMU VM (`KIOSK_TEST=1 ./build.sh`, `./test-vm.sh install`,
+`shipping` profile, dummy credentials, 4 GB): the unattended install onto an
+NVMe disk; boot into the launcher; the Book Portal tile (reaches the ID.me
+sign-in); Ship Individual and Ship Bulk (shippy in foot, reports no printer);
+Ship Manual (shippy-gui maximized, its Settings dialog as a dialog); the Home
+key (Super and F12); the admin screen and `nmtui`; the label watcher service;
+the power button; a reboot; and the installer's refusal with two internal
+disks (`./test-vm.sh install --two-disks`: it waits at partitioning and both
+disks stay empty).
+
+Not tested: any real hardware (PM-2411-BT and DYMO printers, Wi-Fi, the Acer
+laptops, the Chromebook's 2 GB); the IBP Requests page itself (the server
+isn't reachable from the VM); the `intake` and `portal` profiles; the print
+server; log upload to the real share; Tailscale join. `docs/apps.md` has the
+apps' own "Not verified" list and `docs/design.md` the rollout.
+
+Known rough edges:
+- A bad or missing Google Maps key makes shippy-gui exit with a Python
+  traceback, which the launcher's failure screen shows as is.
+- shippy's "no printer" text names the Windows folder `Downloads\to-print`.
+- With QEMU's `virtio-vga`, terminal windows show stale frames; `test-vm.sh`
+  uses a plain framebuffer. Not seen as a problem outside the VM, but check
+  the terminal tiles first on real hardware.
+- The repo is local only (no GitHub remote yet), so `../bootstrap.sh` doesn't
+  clone it.
