@@ -1,0 +1,20 @@
+# IBP station, feature shipping: the PM-2411-BT shipping label printers (BOB
+# and BETTY). setup.d copies this to /etc/udev/rules.d/ only on stations with
+# that feature. Adapted from ibp-printing packaging/linux/60-ibp-label-printer.rules.
+#
+# ibp-printing prints to the printer directly through usblp (/dev/usb/lpN,
+# root:lp 0660 by default). The upstream rule tags the node "uaccess", which
+# gives an ACL to whoever has the active seat: on this station that is
+# kiosk, but only until an admin logs in on another VT, and the label watcher
+# (a kiosk user service) should keep printing then too. So the node's group
+# is kiosk instead, whatever session is in front.
+#
+# 2e3c is the printer's USB vendor (Artery AT32, shared by other OEM label
+# printers, as upstream). This file sorts after 50-udev-default.rules, which
+# sets GROUP="lp".
+SUBSYSTEM=="usbmisc", KERNEL=="lp[0-9]*", ATTRS{idVendor}=="2e3c", GROUP="kiosk", MODE="0660"
+
+# USB autosuspend off for the printer, so it never sleeps between labels
+# (the shipping laptops have USB selective suspend off on Windows for the
+# same reason).
+ACTION=="add", SUBSYSTEM=="usb", ENV{DEVTYPE}=="usb_device", ATTR{idVendor}=="2e3c", ATTR{idProduct}=="5760", TEST=="power/control", ATTR{power/control}="on"
