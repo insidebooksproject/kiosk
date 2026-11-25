@@ -3,7 +3,7 @@
 [[tile]]
 id = "ship-individual"
 label = "Ship Individual"
-description = "Scan a request and mail it to one person"
+description = "Mail a package to one inmate"
 command = ["ibp-kiosk-app", "ship-individual"]
 
 [[tile]]
