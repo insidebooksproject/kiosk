@@ -120,16 +120,19 @@ EOF
 # --------------------------------------------------------------- terminal
 
 # Run "ibp-kiosk-app --in-terminal NAME" in a full-screen foot window. foot
-# exits when that command does.
+# exits when that command does. foot's own warnings are turned off: the
+# launcher's failure screen shows this command's output, and a foot warning
+# there reads as the reason an app stopped.
 terminal() {
     name=$1 title=$2
     need foot "The terminal (foot) is not installed on this machine. Ask an IBP admin."
     if [ -r "$FOOT_CONFIG" ]; then
-        run foot --config="$FOOT_CONFIG" --app-id="ibp-kiosk-$name" \
-            --title="$title" --fullscreen -- "$self" --in-terminal "$name"
+        run foot --log-level=error --config="$FOOT_CONFIG" \
+            --app-id="ibp-kiosk-$name" --title="$title" --fullscreen \
+            -- "$self" --in-terminal "$name"
     fi
-    run foot --app-id="ibp-kiosk-$name" --title="$title" --fullscreen \
-        -- "$self" --in-terminal "$name"
+    run foot --log-level=error --app-id="ibp-kiosk-$name" --title="$title" \
+        --fullscreen -- "$self" --in-terminal "$name"
 }
 
 # Show MESSAGE and wait for one key. Keys typed earlier (a scanner's Enter,
@@ -145,36 +148,46 @@ pause() {
     stty "$old"
 }
 
+# An app in the terminal stopped with an error. Its message is on the
+# screen, so keep it there until a key is pressed, and log the status (the
+# launcher only sees the exit 0 below).
+stopped() {
+    logger -t ibp-kiosk-app "$1 stopped with exit status $2" 2>/dev/null
+    pause "$1 stopped (exit status $2). Read the message above, then press any key to close."
+}
+
+# Always exits 0: the volunteer has either quit the app or already read its
+# error here, so the launcher goes back to the tiles rather than showing its
+# failure screen with nothing useful on it.
 in_terminal() {
     # Ctrl+C reaches the app, not this shell (a handler, unlike an ignored
-    # signal, is not inherited), so the pause below still runs.
+    # signal, is not inherited), so the pause still runs.
     trap : INT
     case $1 in
     ship-individual | ship-bulk)
         mode=${1#ship-}
         "$TOOL" shippy shippy --config "$SHIPPY_CONFIG" "$mode"
         rc=$?
-        if [ "$rc" -ne 0 ]; then
-            pause "shippy stopped (exit status $rc). Read the message above, then press any key to close."
-        fi
-        exit "$rc"
+        # 130 is Ctrl+C: the volunteer quit shippy, which is not a problem.
+        case $rc in
+        0 | 130) ;;
+        *) stopped shippy "$rc" ;;
+        esac
         ;;
     wifi)
         nmtui
         rc=$?
-        [ "$rc" -eq 0 ] || pause "nmtui stopped (exit status $rc). Press any key to close."
-        exit "$rc"
+        [ "$rc" -eq 0 ] || stopped nmtui "$rc"
         ;;
     print-diag)
         "$TOOL" --no-upgrade ibp-printing ibp-print-diag
-        rc=$?
-        pause "Done (exit status $rc). Press any key to close."
-        exit "$rc"
+        pause "Done (exit status $?). Press any key to close."
         ;;
     *)
         usage
         ;;
     esac
+    exit 0
 }
 
 # ------------------------------------------------------------------- main

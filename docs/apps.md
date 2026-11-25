@@ -175,10 +175,16 @@ then with `sudo -u kiosk -H uv cache prune`.
 `foot --config=/etc/ibp-kiosk/foot.ini --app-id=ibp-kiosk-ship-individual
 --fullscreen -- ibp-kiosk-app --in-terminal ship-individual`. Inside, shippy
 runs through `ibp-kiosk-tool` (so the update check is visible on screen). The
-terminal closes when shippy exits; if shippy exits non-zero (an error, or
-Ctrl+C), the screen says "shippy stopped (exit status N). Read the message
-above, then press any key to close." Keys typed before that message (a
-scanner's Enter) are discarded first. The Home key closes it at any time.
+terminal closes when shippy exits 0 or 130 (130 is an unhandled Ctrl+C;
+shippy's own "Press Ctrl+C to quit" at the no-printer prompt exits 1 today,
+so it gets the message below). After any other non-zero exit the screen says
+"shippy stopped (exit status N). Read the message above, then press any key
+to close." Keys typed before that message (a scanner's Enter) are discarded
+first, and the status goes to the journal (`ibp-kiosk-app`). Either way the
+launcher then shows the tiles, not its failure screen: the volunteer has
+already read the error where it was printed. foot runs with
+`--log-level=error`, so its own warnings never show up as the reason an app
+stopped. The Home key closes it at any time.
 
 `foot.ini`: DejaVu Sans Mono 16 pt (about 150 x 45 on a 1920x1080 screen),
 10000 lines of scrollback, and no key that starts another program (no new
