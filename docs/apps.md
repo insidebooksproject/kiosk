@@ -159,6 +159,11 @@ release's `.sha256` files) and rerun `setup.sh`; `uv self update` is not used.
 `/usr/bin/python3` (3.13; shippy and shippy-gui need >= 3.12), which Debian
 keeps patched.
 
+Repair: an upgrade cut off half-way (the Home key during "Checking for
+updates", a power cut) could leave a tool broken. Delete its spec stamp and
+the next launch reinstalls it, e.g.
+`sudo rm /home/kiosk/.local/state/ibp-kiosk/tools/shippy.spec`.
+
 Disk: uv's cache (`/home/kiosk/.cache/uv`) keeps old builds. Trim it now and
 then with `sudo -u kiosk -H uv cache prune`.
 
