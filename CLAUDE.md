@@ -22,7 +22,7 @@ this one grew from.
 
 | Path | What |
 |---|---|
-| `build.sh` | Builds `build/ibp-kiosk-<hostname>.iso`: the current Debian netinst ISO plus an unattended install entry |
+| `build.sh` | Builds `build/ibp-kiosk-<hostname>.iso`: the current Debian netinst ISO plus an unattended install entry and `/kiosk/payload.cpio.gz` (preseed, this repo, secrets) |
 | `installer/` | Preseed, USB boot menu, `early.sh` (picks the disk), `late.sh` (runs `setup.sh` in the new system) |
 | `setup.sh` | Turns a minimal Debian 13 into a station: installs `packages/*.txt`, copies `rootfs/`, the launcher and the profile, creates the `kiosk` user, then sources `setup.d/*.sh` in order. Rerunnable |
 | `packages/*.txt` | Debian packages, one per line, `#` comments. `setup.sh` installs the union |

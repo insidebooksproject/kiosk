@@ -2,27 +2,42 @@
 
 One Debian 13 (trixie) image for every IBP volunteer machine. It boots
 straight into a full-screen launcher with a big tile per task (TDCJ Book
-Portal, IBP Requests, IBP Packages, Ship Individual, Ship Bulk, Ship Manual) and nothing
-else: no desktop, no file manager, no settings. Background is in
-[`docs/design.md`](docs/design.md); the layout and the contracts between the
-parts are in [`CLAUDE.md`](CLAUDE.md).
+Portal, IBP Requests, IBP Packages, Ship Individual, Ship Bulk, Ship Manual)
+and nothing else: no desktop, no file manager, no settings. The layout and
+the contracts between the parts are in [`CLAUDE.md`](CLAUDE.md), how the
+apps and printers run in [`docs/apps.md`](docs/apps.md), and the background
+in [`docs/design.md`](docs/design.md).
 
-- **Debian 13**, minimal. Security updates install themselves
-  (`unattended-upgrades`) and the machine reboots at 03:00 when one needs it.
+- **Debian 13**, minimal. Updates install themselves: `unattended-upgrades`
+  takes Debian's main, security and -updates archives and Tailscale's
+  (Firefox ESR is Debian's package, with its own updater off), and the
+  machine reboots at 03:00 when one needs it. The station's own setup
+  updates from this repo at boot ([Updates](#updates)).
 - **labwc** (a small Wayland compositor) runs the launcher. The `kiosk` user
   is logged in automatically on tty1; if the session ends or crashes, the
   login ends and a fresh one starts it again.
-- **Profiles** decide what a machine shows and installs: `shipping`,
-  `intake` or `portal` (see [Profiles](#profiles)).
+- **Profiles** decide what a machine shows and installs (below).
 - Admin: the `ibp` user (sudo) over SSH (keys only), on the console
   (Ctrl+Alt+F2), and optionally on the tailnet.
+
+## Profiles
+
+| Profile | Tiles | Features |
+|---|---|---|
+| `shipping` | Ship Individual, Ship Bulk, Ship Manual, TDCJ Book Portal, IBP Requests, IBP Packages | `shipping`: shippy, shippy-gui, the PM-2411-BT label printer, log upload |
+| `intake` | IBP Requests | `package-printer`: CUPS and the DYMO print server |
+| `portal` | TDCJ Book Portal, opened at boot | `low-memory`: Firefox settings for the 2 GB Chromebook |
+
+Each is `profiles/<name>/profile.conf` (installed as
+`/etc/ibp-kiosk/profile.conf`) and `station.toml` (the tiles, status strip
+and admin screen, installed as `/etc/ibp-kiosk/station.toml`).
 
 ## 1. Build the USB stick
 
 Build one ISO per machine; the profile and the hostname are baked in.
 
 ```sh
-KIOSK_PROFILE=shipping KIOSK_HOSTNAME=ibp-laptop2 ./build.sh
+KIOSK_PROFILE=shipping KIOSK_HOSTNAME=ibp-pippin ./build.sh
 ```
 
 It asks for anything required and unset:
@@ -30,8 +45,9 @@ It asks for anything required and unset:
 | Setting | |
 |---|---|
 | `KIOSK_PROFILE` | `shipping`, `intake` or `portal` |
-| `KIOSK_HOSTNAME` | the machine's name (lowercase, digits, dashes); by convention `ibp-` plus a Tolkien character, e.g. `ibp-pippin` |
+| `KIOSK_HOSTNAME` | the machine's name (lowercase, digits, dashes): `ibp-` plus a Tolkien character, e.g. `ibp-pippin` (`CLAUDE.md`, "Machines") |
 | `KIOSK_WIFI_SSID`, `KIOSK_WIFI_PSK` | Wi-Fi (WPA2 personal), used by the installer and the station. Empty SSID: no Wi-Fi, and the install needs an Ethernet cable |
+| `KIOSK_SITE_WIFI_SSID`, `KIOSK_SITE_WIFI_PSK` | optional, not asked for: a second Wi-Fi saved as `ibp-site-wifi` (IBP's network, when building at home) |
 | `KIOSK_ADMIN_PASSWORD` | password for `ibp` (sudo, console) |
 | `KIOSK_SSH_KEYS` | `authorized_keys` for `ibp`; default `~/.ssh/id_ed25519.pub` |
 | `KIOSK_TAILSCALE_AUTHKEY` | optional auth key: joins the tailnet as the hostname on first boot, then the key file is deleted. Use the IBP tailnet's station key (Bitwarden `tailscale insidebooksproject`, field `auth-key-station`) |
@@ -48,13 +64,14 @@ checked against Debian's signed checksums and reused from `build/` while it
 is current. Write the ISO (this erases the stick):
 
 ```sh
-sudo dd if=build/ibp-kiosk-ibp-laptop2.iso of=/dev/sdX bs=4M conv=fsync status=progress
+sudo dd if=build/ibp-kiosk-ibp-pippin.iso of=/dev/sdX bs=4M conv=fsync status=progress
 ```
 
 `KIOSK_TEST=1 ./build.sh` builds a test ISO with no real secrets (admin
 password `testpw`, no Wi-Fi, placeholder app configs, profile `shipping`,
-hostname `test-station`, all overridable). Never install it on a real
-machine.
+hostname `test-station`, no updates at boot; all overridable). Never install
+it on a real machine. `KIOSK_TEST_BROADCOM_STA=1` also makes the install
+build the MacBook Wi-Fi driver without the hardware.
 
 ## 2. Install
 
@@ -108,11 +125,13 @@ Nvidia graphics, driven by nouveau), log in over SSH and add
 
 - **Off/on:** closing the lid or pressing the power button shuts down
   cleanly; it never suspends. The power button starts it again.
-- **Closing an app:** the ✕ at the top right returns to the tiles, in
-  Firefox (an ordinary window with tabs) and in Ship Individual, Ship Bulk
-  and Ship Manual, whose title bar also names the mode.
+- **Closing an app:** the ✕ at the top right returns to the tiles: in
+  Firefox (an ordinary window with tabs), and in the title bar of Ship
+  Individual, Ship Bulk and Ship Manual, which also names the mode.
 - **Home key:** the Windows (Super) key on its own, or F12, closes the
   current app and shows the tiles. On the Chromebook it is the Search key.
+- **Admin screen:** Ctrl+Alt+A on the tiles: hostname, addresses, version,
+  Wi-Fi and (with a label printer) the printer check.
 - **Admin console:** Ctrl+Alt+F2, log in as `ibp`. Ctrl+Alt+F1 returns to
   the station.
 - **SSH:** `ssh ibp@<hostname>.local` on the LAN, or `<hostname>` on the
@@ -120,63 +139,51 @@ Nvidia graphics, driven by nouveau), log in over SSH and add
   browser sign-in: `sudo tailscale up --hostname=$(hostname) --auth-key=<key>`.
 - **Restart the session:** `sudo systemctl restart getty@tty1`.
 - **Logs:** `journalctl -t ibp-kiosk` (labwc, the launcher and the apps).
-- **Wi-Fi:** the launcher's admin screen has a Wi-Fi entry (`nmtui`); from
-  the console, `sudo nmtui`.
-- **Updates:** at every boot the station checks this repo's `deploy`
-  branch (`ibp-kiosk-update.service`, in the background) and, when the
-  branch has moved, downloads it and runs its `setup.sh`. The "Updates" chip
-  on the launcher shows how that went; `journalctl -u ibp-kiosk-update` has
-  the details. Launcher and window changes show after the next restart. A
-  failed update leaves the installed version running and is tried again at
-  the next boot; with no network nothing happens. **To release:** try the
-  change in the VM, merge it into `main`, then fast-forward `deploy`
-  (`git push origin main:deploy`). `/etc/ibp-kiosk/update.conf` can set
-  `UPDATE_BRANCH` (empty: no updates) and `UPDATE_URL`.
-- **Change one machine by hand:** edit this repo, copy it over and rerun
-  `setup.sh` (it keeps the machine's profile; `-p NAME` switches it). On a
-  machine that follows `deploy`, the next release replaces what you
-  copied:
+  The apps' own logs: `docs/apps.md`, "Where things are on a station".
+- **Wi-Fi:** the admin screen's Wi-Fi entry (`nmtui`); from the console,
+  `sudo nmtui`.
 
-  ```sh
-  rsync -a --exclude build --exclude .git ./ ibp@<hostname>.local:ibp-kiosk/
-  ssh -t ibp@<hostname>.local sudo sh ibp-kiosk/setup.sh [-p PROFILE] [SECRETS_DIR]
-  ```
+### Updates
 
-  `SECRETS_DIR` is optional and holds the same files `build.sh` writes
-  (`authorized_keys`, `wifi/*.nmconnection`, `tailscale-authkey`,
-  `shippy.ini`, `shippy-gui.ini`, `log-upload.conf`, `update.conf`). Without it the
-  installed secrets are left as they are.
+At every boot the station checks this repo's `deploy` branch
+(`ibp-kiosk-update.service`, in the background) and, when the branch has
+moved, downloads it and runs its `setup.sh`. The "Updates" chip on the
+launcher shows how that went; `journalctl -u ibp-kiosk-update` has the
+details. Launcher and window changes show after the next restart. A failed
+update leaves the installed version running and is tried again at the next
+boot; with no network nothing happens. `/etc/ibp-kiosk/update.conf` can set
+`UPDATE_BRANCH` (empty: no updates) and `UPDATE_URL`. How to release:
+`CLAUDE.md`, "Releasing".
 
-## Profiles
+The apps (shippy, shippy-gui, ibp-printing) update separately, from their
+own `deploy` branches, each time they start (`docs/apps.md`).
 
-| Profile | Tiles | Features |
-|---|---|---|
-| `shipping` | Ship Individual, Ship Bulk, Ship Manual, TDCJ Book Portal, IBP Requests, IBP Packages | `shipping`: shippy, shippy-gui, the PM-2411-BT label printer, log upload |
-| `intake` | IBP Requests | `package-printer`: CUPS and the DYMO print server |
-| `portal` | TDCJ Book Portal, opened at boot | `low-memory`: Firefox settings for the 2 GB Chromebook |
+### Change one machine by hand
 
-Each is `profiles/<name>/profile.conf` (installed as
-`/etc/ibp-kiosk/profile.conf`) and `station.toml` (the tiles, status strip
-and admin screen, installed as `/etc/ibp-kiosk/station.toml`).
+Edit this repo, copy it over and rerun `setup.sh` (it keeps the machine's
+profile; `-p NAME` switches it). On a machine that follows `deploy`, the
+next release replaces what you copied.
 
-## How it fits together
+```sh
+rsync -a --exclude build --exclude .git ./ ibp@<hostname>.local:ibp-kiosk/
+ssh -t ibp@<hostname>.local sudo sh ibp-kiosk/setup.sh [-p PROFILE] [SECRETS_DIR]
+```
 
-| Path | What |
-|---|---|
-| `build.sh` | Builds the ISO: Debian netinst plus `/kiosk/payload.cpio.gz` (preseed, this repo, secrets) and a boot menu |
-| `installer/` | `preseed.cfg`, the USB boot menu `grub.cfg`, `early.sh` (picks the disk), `late.sh` (runs `setup.sh` in the new system) |
-| `setup.sh` | Installs `packages/*.txt`, copies `rootfs/` to `/`, the launcher to `/usr/local/lib/ibp-kiosk`, the profile to `/etc/ibp-kiosk`, creates the `kiosk` user, then sources `setup.d/*.sh` in order |
-| `rootfs/` | Config files, laid out by absolute path |
-| `test-vm.sh` | Installs and boots the image in QEMU |
+`SECRETS_DIR` is optional and holds the files `build.sh` writes (`CLAUDE.md`,
+"Secrets directory"). Without it the installed secrets are left as they are.
 
-The session: getty logs `kiosk` in on tty1, its `~/.bash_profile` runs
+## The session
+
+getty logs `kiosk` in on tty1, its `~/.bash_profile` runs
 `ibp-kiosk-session`, which runs
 `labwc -C /etc/ibp-kiosk/labwc -S ibp-kiosk-launcher`. labwc reads only that
-directory: `rc.xml` (main windows maximized without decorations, except the
-terminal tiles, whose title bar names the mode; dialogs keep a title bar
-with a close button; the Home key; no menus, desktops or
-other default bindings), `environment` and `autostart` (a dark
-background). When the launcher exits, labwc exits and getty starts over.
+directory: `rc.xml` (main windows maximized without decorations; the
+terminal windows and Ship Manual keep a title bar that names them, and
+dialogs one with a close button; the Home key; no menus, desktops or other
+default bindings), `themerc-override` (the title bar's colours and its large
+close button) together with the theme `IBP-Kiosk` in `/usr/share/themes`,
+`environment` and `autostart` (a dark background). When the launcher exits,
+labwc exits and getty starts over.
 
 ## Testing in a VM
 
@@ -194,3 +201,5 @@ installed system. SSH: `/usr/bin/ssh -p 2222 ibp@localhost`. Other monitor
 commands: `./test-vm.sh monitor 'sendkey meta_l'` (the Home key),
 `./test-vm.sh monitor 'screendump build/vm/screen.ppm'`; by hand,
 `echo 'info status' | nc -U -q 1 build/vm/monitor.sock`.
+`./test-vm.sh install --two-disks` checks that the installer refuses; the
+other options are at the top of `test-vm.sh`.
