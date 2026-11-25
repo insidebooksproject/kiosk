@@ -188,10 +188,13 @@ class StatusStrip(QFrame):
             chip = QLabel()
             chip.setObjectName("chip")
             self.labels.append(check.label)
+            # Chips share the width and wrap their text, so a long message
+            # can never make the window wider than the screen.
+            chip.setWordWrap(True)
+            chip.setMinimumWidth(120)
             self.chips.append(chip)
-            layout.addWidget(chip)
+            layout.addWidget(chip, 1)
             self._show(len(self.chips) - 1, "…", "Checking", None)
-        layout.addStretch(1)
         self.setVisible(bool(self.chips))
 
     def set_result(self, index: int, result: CheckResult) -> None:
