@@ -133,11 +133,13 @@
     <windowRule type="normal" serverDecoration="no">
       <action name="Maximize" />
     </windowRule>
-    <!-- The terminal tiles (ibp-kiosk-app runs foot with these app ids) keep
-         a title bar: it names the mode ("Ship Bulk") for as long as the app
-         is open, and its close button returns to the tiles. A later rule
-         wins over the one above. Colours are in themerc-override. -->
+    <!-- The terminal tiles (ibp-kiosk-app runs foot with these app ids) and
+         Ship Manual (shippy-gui's app id) keep a title bar: it names the
+         mode ("Ship Bulk") for as long as the app is open, and its close
+         button returns to the tiles. A later rule wins over the one above.
+         Colours are in themerc-override. -->
     <windowRule identifier="ibp-kiosk-ship-*" serverDecoration="yes" />
+    <windowRule identifier="shippy-gui" serverDecoration="yes" />
     <windowRule identifier="ibp-kiosk-wifi" serverDecoration="yes" />
     <windowRule identifier="ibp-kiosk-print-diag" serverDecoration="yes" />
   </windowRules>

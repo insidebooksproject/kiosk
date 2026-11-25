@@ -37,7 +37,7 @@ the base system and the apps is in `CLAUDE.md`; the background is in
 | `requests` | the same with profile `requests`, app_id `ibp-kiosk-requests`, on `http://192.168.1.156/` |
 | `packages` | the same as `requests` (same profile and app_id), on `http://192.168.1.156/packages` |
 | `ship-individual`, `ship-bulk` | `foot --maximized` running `shippy --config /etc/ibp-kiosk/shippy.ini individual` / `bulk` |
-| `ship-manual` | `shippy-gui`, from `/home/kiosk/.config/shippy-gui` (it reads `config.ini` from its working directory) |
+| `ship-manual` | `shippy-gui -qwindowtitle "Ship Manual"` (Qt's option; the title bar shows it), from `/home/kiosk/.config/shippy-gui` (it reads `config.ini` from its working directory) |
 | `wifi` | `foot --maximized` running `nmtui` |
 | `print-diag` | `foot --maximized` running `ibp-print-diag`, then "press any key" |
 

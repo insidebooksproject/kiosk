@@ -49,7 +49,7 @@ installer this one grew from.
 | `ibp-kiosk-app requests` | The same on the IBP frontend, own profile |
 | `ibp-kiosk-app packages` | The same on the IBP frontend's packages page (`/packages`), in the `requests` profile |
 | `ibp-kiosk-app ship-individual` / `ship-bulk` | shippy in a maximized terminal whose title bar names the mode and has a close button |
-| `ibp-kiosk-app ship-manual` | shippy-gui |
+| `ibp-kiosk-app ship-manual` | shippy-gui, with the same title bar ("Ship Manual") |
 | `ibp-kiosk-app wifi` | `nmtui` in a terminal (admin screen) |
 | `ibp-kiosk-app print-diag` | `ibp-print-diag` in a terminal that stays open until a key is pressed (admin screen) |
 | `ibp-kiosk-status network\|server\|printer-shipping\|printer-package` | One status check: exit 0 = fine, non-zero = problem; first line of stdout is a short text for the volunteer |

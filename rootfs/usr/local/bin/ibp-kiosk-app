@@ -231,7 +231,9 @@ ship-manual)
     cd "$SHIPPY_GUI_DIR" || die "Can't open $SHIPPY_GUI_DIR."
     # Native Wayland under labwc; XWayland only if that fails.
     export QT_QPA_PLATFORM="${QT_QPA_PLATFORM:-wayland;xcb}"
-    run "$TOOL" shippy-gui shippy-gui
+    # Qt's own option: the title labwc shows in the window's title bar,
+    # in place of shippy-gui's "Shippy GUI - IBP Shipping Label Generator".
+    run "$TOOL" shippy-gui shippy-gui -qwindowtitle "Ship Manual"
     ;;
 wifi)
     need nmtui "nmtui is not installed on this machine. Ask an IBP admin."
