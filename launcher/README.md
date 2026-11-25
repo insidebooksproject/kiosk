@@ -38,9 +38,9 @@ Options: `--config PATH` (or `IBP_KIOSK_CONFIG`; default
 | Arrow keys, Tab | Move between tiles and buttons |
 | Enter, Space, click | Press the tile or button |
 | 1 to 9 | Start the tile with that number |
-| Ctrl+Alt+A | Admin screen: hostname, IP addresses, version, `[[admin]]` tiles |
+| Ctrl+Alt+A | Admin screen (not while an app runs): hostname, IP addresses, version, `[[admin]]` tiles |
 | Esc | Leave the admin, failure or confirm screen |
-| `ibp-kiosk-launcher home` | Bound to Super by labwc: close the app, show the tiles |
+| `ibp-kiosk-launcher home` | Bound to Super and F12 by labwc: close the app, show the tiles |
 
 ## How it behaves
 
@@ -48,8 +48,10 @@ Options: `--config PATH` (or `IBP_KIOSK_CONFIG`; default
   stdout and stderr merged into one pipe that is always drained. Each line is
   copied to the launcher's stderr as `[tile-id] line` (so it reaches the
   journal) and the last 15 are kept. If the app exits non-zero, or within 3
-  seconds, the failure screen shows them. When the app exits, the rest of its
-  process group gets SIGTERM.
+  seconds, the failure screen shows them, unless the launcher stopped it.
+  When the app exits, the rest of its process group gets SIGTERM. While it
+  runs, the launcher's own page (behind the app) says so and has a Close
+  button.
 - **Home.** The launcher holds an exclusive `flock` on
   `$XDG_RUNTIME_DIR/ibp-kiosk/launcher.pid` and writes its pid there. `home`
   sends that pid SIGUSR1; if the file is missing or unlocked, no launcher is
