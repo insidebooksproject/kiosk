@@ -75,6 +75,7 @@ class StatusMonitor(QObject):
         self._checks = checks
         self._timeout = timeout
         self._busy = [False] * len(checks)
+        self._ok: list[bool | None] = [None] * len(checks)
         self._timers: list[QTimer] = []
         self._finished.connect(self._on_finished)
         for i, check in enumerate(checks):
@@ -105,4 +106,8 @@ class StatusMonitor(QObject):
 
     def _on_finished(self, index: int, result: CheckResult) -> None:
         self._busy[index] = False
+        if result.ok != self._ok[index]:  # log changes only, not every run
+            log.info("status %s: %s %s", self._checks[index].label,
+                     "ok" if result.ok else "PROBLEM", result.text)
+            self._ok[index] = result.ok
         self.result.emit(index, result)

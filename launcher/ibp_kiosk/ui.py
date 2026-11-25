@@ -405,6 +405,7 @@ class MainWindow(QWidget):
             self.show_failure(result)
         else:
             self.show_home()
+            self.bring_to_front()
 
     def show_failure(self, result: RunResult) -> None:
         self.failure_title.setText(result.tile.label)
