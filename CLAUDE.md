@@ -4,15 +4,11 @@ One Debian 13 image for every IBP volunteer machine. It boots into a
 full-screen launcher with one tile per task (TDCJ Book Portal, IBP Requests,
 IBP Packages, Ship Individual, Ship Bulk, Ship Manual) and nothing else. The
 repo is `insidebooksproject/kiosk` (public); the product, and everything it
-installs, is named `ibp-kiosk`.
-
-- `README.md`: build, install, run, profiles, the VM.
-- `docs/apps.md`: how each app, printer, status check and the log upload
-  work, where their files are, and what is untested.
-- `docs/design.md`: why it is built this way, and the rollout.
-- `launcher/README.md`: the launcher's behaviour, development and tests.
-- This file: the layout, the contracts between the parts, releasing, and
-  the state of the machines.
+installs, is named `ibp-kiosk`. Build, install and run it: `README.md`. The
+apps, printers and status checks: `docs/apps.md`. Why it is built this way,
+and the rollout: `docs/design.md`. The launcher: `launcher/README.md`. This
+file: the layout, the contracts between the parts, releasing, and the
+machines.
 
 It replaces `jonkensta/ibp-book-portal-kiosk` (the Chromebook's Firefox
 kiosk; archived 2026-11-25, not moved to the organisation), whose installer

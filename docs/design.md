@@ -39,14 +39,10 @@ moving the server.
 | Ship Bulk | `shippy bulk` in a terminal |
 | Ship Manual | `shippy-gui` |
 
-Which tiles a machine shows is a per-machine setting (its profile), so the
-same image serves each role:
-
-| Station | Tiles |
-|---|---|
-| Shipping laptop | All six |
-| Intake station | IBP Requests (the Book Portal can be added) |
-| Book Portal kiosk | TDCJ Book Portal only, opened at boot; closing it shows the launcher with its one tile |
+Which tiles a machine shows is a per-machine setting, its profile, so the
+same image serves each role: the shipping laptops get all six, the intake
+station IBP Requests, and the Chromebook the Book Portal alone, opened at
+boot (`README.md`, "Profiles").
 
 ## Decisions
 
@@ -93,21 +89,13 @@ session loop: launcher, then the chosen app, then launcher again).
 ### Launcher
 
 A small PySide6 program (`ibp-kiosk-launcher`), since PySide6 is already in
-use for shippy-gui. It has:
-
-- **Tiles**, read from `/etc/ibp-kiosk/station.toml` (which tiles, their
-  labels and commands). Large text, keyboard and mouse both work.
-- **A status strip**: network, `ibp-server` reachable, label printer
-  detected, the last update. This is what a volunteer reads out over the
-  phone.
-- **Power**: shut down and restart buttons.
-- **An admin screen** behind a key combination: join Wi-Fi (`nmtui` in a
-  terminal), run `ibp-print-diag`, show the machine's name and version.
-
-It holds no credentials and makes no purchases; it only starts programs and
-shows status. If an app fails or exits within a few seconds, the launcher
-shows the last lines of its output instead of silently returning to the
-tiles.
+use for shippy-gui: the tiles from `/etc/ibp-kiosk/station.toml`, a status
+strip a volunteer can read out over the phone (network, server, printer,
+updates), shut down and restart buttons, and an admin screen behind a key
+combination (Wi-Fi, `ibp-print-diag`, the machine's name and version). It
+holds no credentials and makes no purchases; it only starts programs and
+shows status. If an app fails or exits within a few seconds, it shows the
+last lines of the app's output instead of silently returning to the tiles.
 
 ### The apps
 
