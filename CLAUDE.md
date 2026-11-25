@@ -182,8 +182,6 @@ Known rough edges:
 - With QEMU's `virtio-vga`, terminal windows show stale frames; `test-vm.sh`
   uses a plain framebuffer. Not seen as a problem outside the VM, but check
   the terminal tiles first on real hardware.
-- The repo is local only (no GitHub remote yet), so `../bootstrap.sh` doesn't
-  clone it.
 
 ## Machines
 
