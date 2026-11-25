@@ -13,11 +13,12 @@ the base system and the apps is in `CLAUDE.md`; the background is in
 | `rootfs/usr/local/bin/ibp-kiosk-status` | The status strip's checks |
 | `rootfs/usr/local/bin/ibp-kiosk-tool` | Installs, upgrades and runs shippy, shippy-gui and ibp-printing as uv tools |
 | `rootfs/usr/local/bin/ibp-kiosk-log-upload` | Copies the label-printer logs to the Samba share |
-| `rootfs/usr/share/firefox-esr/distribution/policies.json` | Firefox policies (both browser tiles) |
-| `rootfs/etc/firefox-esr/ibp-kiosk.js` | Firefox prefs (both browser tiles) |
+| `rootfs/usr/share/firefox-esr/distribution/policies.json` | Firefox policies (every browser tile) |
+| `rootfs/etc/firefox-esr/ibp-kiosk.js` | Firefox prefs (every browser tile) |
 | `rootfs/etc/gtk-3.0/settings.ini` | Firefox's window buttons: close only |
 | `rootfs/usr/local/share/ibp-kiosk/firefox/ibp-kiosk-low-memory.js` | Low-memory prefs, copied to `/etc/firefox-esr/` with feature `low-memory` |
 | `rootfs/etc/ibp-kiosk/foot.ini` | The terminal's config |
+| `rootfs/etc/ibp-kiosk/labwc/{rc.xml,themerc-override}`, `rootfs/usr/share/themes/IBP-Kiosk/` | The title bar on the terminal windows and Ship Manual |
 | `rootfs/etc/uv/uv.toml` | uv: Debian's Python only, never download one |
 | `rootfs/etc/polkit-1/rules.d/50-ibp-kiosk-network.rules` | Lets `kiosk` change network settings (Wi-Fi tile) |
 | `rootfs/usr/local/share/ibp-kiosk/udev/*.rules` | Printer udev rules, copied to `/etc/udev/rules.d/` per feature |
@@ -36,10 +37,10 @@ the base system and the apps is in `CLAUDE.md`; the background is in
 | `portal` | `firefox-esr --no-remote --profile ~/.local/share/ibp-kiosk/firefox/portal --name ibp-kiosk-portal https://bookportal.tdcj.texas.gov/BookPortal/protected/dashboard.action` |
 | `requests` | the same with profile `requests`, app_id `ibp-kiosk-requests`, on `http://192.168.1.156/` |
 | `packages` | the same as `requests` (same profile and app_id), on `http://192.168.1.156/packages` |
-| `ship-individual`, `ship-bulk` | `foot --maximized` running `shippy --config /etc/ibp-kiosk/shippy.ini individual` / `bulk` |
+| `ship-individual`, `ship-bulk` | foot, maximized, with a title bar, running `shippy --config /etc/ibp-kiosk/shippy.ini individual` / `bulk` (below) |
 | `ship-manual` | `shippy-gui -qwindowtitle "Ship Manual"` (Qt's option; the title bar shows it), from `/home/kiosk/.config/shippy-gui` (it reads `config.ini` from its working directory) |
-| `wifi` | `foot --maximized` running `nmtui` |
-| `print-diag` | `foot --maximized` running `ibp-print-diag`, then "press any key" |
+| `wifi` | the same terminal running `nmtui` |
+| `print-diag` | the same terminal running `ibp-print-diag`, then "press any key" |
 
 `ibp-kiosk-app` stays in the foreground (it `exec`s the app, so the launcher's
 SIGTERM to the process group reaches the app itself) and exits with the
@@ -58,16 +59,24 @@ The start pages can be changed without editing the script: an optional
 
 ### Browser tiles
 
+- **An ordinary window** (since 2026-11-25), not `--kiosk`: tabs, address
+  bar, and volunteers can open other pages. labwc gives main windows no
+  title bar, so Firefox draws its own buttons in the tab bar
+  (`browser.tabs.inTitlebar`), and `/etc/gtk-3.0/settings.ini` leaves only
+  the close button; closing the window ends Firefox and the launcher shows
+  the tiles.
 - **URLs.** The portal's is the predecessor's start page
   (`ibp-book-portal-kiosk`'s `policies.json`), which sends a signed-out
   volunteer to the login (ID.me). The IBP frontend's is the "App" address in
-  `ops/ibp-server.md` (ibp-meta): `http://192.168.1.156/`, LAN and tailnet
+  `ops/ibp-server.md` (the meta repo): `http://192.168.1.156/`, LAN and tailnet
   only, the same server address `shippy`'s `sample.ini` uses. The Pi's LAN
   address is static. (`http://ibp-server.local/` also works where mDNS does;
   the extension uses that name.)
-- **One `policies.json` for both.** Firefox reads policies system-wide, so
-  both tiles get the predecessor's lockdown (no about:config, dev tools,
-  other add-ons or saved passwords; DoH off so `ibp-server.local` resolves)
+- **One `policies.json` for all.** Firefox reads policies system-wide, so
+  every tile gets the predecessor's lockdown (no about:config, dev tools,
+  other add-ons, `file://` pages or saved passwords; DoH off so
+  `ibp-server.local` resolves; Firefox's own updater off, as Debian's
+  package updates it)
   and the force-installed IBP Book Portal Scanner extension. The predecessor's
   locked `Homepage` policy is gone: each tile's start page is passed on the
   command line and written to its profile's `user.js` (for Alt+Home).
@@ -123,9 +132,9 @@ ibp-kiosk-tool [--no-upgrade | --install-only] TOOL [COMMAND [ARG...]]
 | `ibp-printing` | `ibp-printing[watcher] @ git+https://github.com/insidebooksproject/printing.git@deploy` | label watcher, Printer check (`--no-upgrade`) |
 | `ibp-printing-server` | `ibp-printing[linux] @ ...@deploy` | the print server (user `ibp-kiosk-print`) |
 
-Releasing stays as it is: fast-forward `deploy`; stations pick it up at the
-next launch (the watcher and print server at their next start, i.e. boot).
-A changed SPEC in this script (recorded in
+Releasing an app stays as it is: fast-forward its repo's `deploy`; stations
+pick it up at the next launch (the watcher and print server at their next
+start, i.e. boot). A changed SPEC in this script (recorded in
 `~/.local/state/ibp-kiosk/tools/TOOL.spec`) reinstalls the tool. A lock
 (`flock`) keeps two installs of one tool apart. `setup.d` preinstalls every
 tool the station's features need (as its user), so the first launch is quick
@@ -147,7 +156,7 @@ no window showing).
 | `uv tool upgrade` after a new commit on the branch (local test repo) | installs the new commit |
 
 So `uvx --offline` cannot start anything from a git branch or tag, cached or
-not; the design's "retry with uv's offline mode" would never work. A tool
+not; the first design's "retry with uv's offline mode" would never work. A tool
 install, upgraded at launch, is the offline fallback.
 
 **uv itself.** Debian 13 has no `uv` package (it is only in unstable, as of
@@ -172,8 +181,9 @@ then with `sudo -u kiosk -H uv cache prune`.
 
 ### Ship Individual, Ship Bulk (foot)
 
-`foot --config=/etc/ibp-kiosk/foot.ini --app-id=ibp-kiosk-ship-individual
---maximized -- ibp-kiosk-app --in-terminal ship-individual`. labwc gives the
+`foot --log-level=error --config=/etc/ibp-kiosk/foot.ini
+--app-id=ibp-kiosk-ship-individual --title="Ship Individual" --maximized --
+ibp-kiosk-app --in-terminal ship-individual`. labwc gives the
 window a title bar with the tile's name ("Ship Individual", "Ship Bulk"), so
 the screen always says which mode is open, and a close button that returns
 to the tiles (window rules in `rc.xml`; colours and the button size in
@@ -187,9 +197,10 @@ cdfc8f7, or an unhandled Ctrl+C). After any other non-zero exit the screen says
 to close." Keys typed before that message (a scanner's Enter) are discarded
 first, and the status goes to the journal (`ibp-kiosk-app`). Either way the
 launcher then shows the tiles, not its failure screen: the volunteer has
-already read the error where it was printed. foot runs with
-`--log-level=error`, so its own warnings never show up as the reason an app
-stopped. The Home key or the close button closes it at any time.
+already read the error where it was printed. foot's own warnings are off
+(`--log-level=error`), so they never show up as the reason an app stopped.
+The Home key or the close button (a hangup, also a normal exit) closes it
+at any time.
 
 `foot.ini`: DejaVu Sans Mono 16 pt (about 150 x 45 on a 1920x1080 screen),
 10000 lines of scrollback, and no key that starts another program (no new
@@ -247,6 +258,7 @@ don't repeat the label.
 | `server` | `GET http://192.168.1.156/api/health` (3 s connect, 4 s total) | "OK", "Not reachable", "Database problem" (503), "Error (N)" |
 | `printer-shipping` | sysfs only: each `/sys/class/usbmisc/lp*` whose `device/ieee1284_id` has `MDL:PM2411BT` (or `MODEL:`, any case) or whose USB device is `2e3c:5760`; then whether `/dev/usb/lpN` exists and is read-write for the caller (`access()`, no open). Falls back to `/sys/bus/usb/devices` for a printer not bound to usblp | "Ready (BOB)" / "(BETTY)" by serial, "Plugged in, but not allowed (udev rule missing?)", "Plugged in, but not detected (try replugging it)", "Not plugged in" |
 | `printer-package` | `GET http://localhost:40121/health` (the print server's own discovery: a usable label printer queue) | "Ready", "Not plugged in", "Problem (see the print server log)", "Print server not running" |
+| `update` | the first word and the text of `/var/lib/ibp-kiosk/update/status`, written by `ibp-kiosk-update`; a problem only for `failed` | "Not checked yet", "Up to date", "Updating…", "Updated (restart to finish)", "Off on this machine", "Update failed (tell an IBP admin)" |
 
 `printer-shipping` never opens the device: usblp allows one open, and
 shippy or the watcher may be printing. Reading `ieee1284_id` returns the ID
@@ -257,7 +269,7 @@ usblp cached when the printer was plugged in.
 `/etc/udev/rules.d/60-ibp-kiosk-label-printer.rules` (feature `shipping`):
 
 - `/dev/usb/lpN` of USB vendor `2e3c` gets group `kiosk`, mode 0660. The
-  upstream rule (`ibp-printing/packaging/linux/60-ibp-label-printer.rules`)
+  upstream rule (the printing repo's `packaging/linux/60-ibp-label-printer.rules`)
   uses `TAG+="uaccess"` instead, which follows the active seat: an admin
   logging in on another VT would take the printer away from the label
   watcher. The group works whatever session is in front.
@@ -343,7 +355,7 @@ Feature `package-printer`, `70-package-printer.sh`:
 
 **On site, once per station: the DYMO queue.** The print server only uses a
 queue whose name ends in the printer's USB `VID:PID`
-(`ibp-printing` README, "Printer naming rule"), and fits the label to the
+(the printing repo's README, "Printer naming rule"), and fits the label to the
 queue's default page size. As `ibp` (sudo), with the printer plugged in:
 
 ```sh
@@ -377,7 +389,7 @@ sudo -u ibp-kiosk-print -H /var/lib/ibp-kiosk-print/.local/bin/ibp-print-server 
 | shippy-gui config | `/home/kiosk/.config/shippy-gui/config.ini` (kiosk 0600) |
 | Log upload config | `/etc/ibp-kiosk/log-upload.conf` (root 0600) |
 | Optional URL overrides | `/etc/ibp-kiosk/apps.conf` |
-| Firefox profiles | `/home/kiosk/.local/share/ibp-kiosk/firefox/{portal,requests}` |
+| Firefox profiles | `/home/kiosk/.local/share/ibp-kiosk/firefox/{portal,requests}` (IBP Packages uses `requests`) |
 | Installed apps (uv tools) | `/home/kiosk/.local/share/uv/tools`, commands in `/home/kiosk/.local/bin`, cache `/home/kiosk/.cache/uv`; print server: the same under `/var/lib/ibp-kiosk-print` |
 | shippy, shippy-gui, watcher, diag logs | `/home/kiosk/.local/state/ibp-printing/logs/printer-{shippy,shippy-gui,watcher,diag}.{log,jsonl}` |
 | Label journal, watcher state | `/home/kiosk/.local/state/ibp-printing/` |
@@ -388,12 +400,13 @@ sudo -u ibp-kiosk-print -H /var/lib/ibp-kiosk-print/.local/bin/ibp-print-server 
 
 ## Tested and not verified
 
-Tested on the build machine (Pop!_OS, uv 0.12.9) on 2026-11-24:
+Tested on the build machine (Pop!_OS, uv 0.12.9) on 2026-11-24 (the VM run
+is in `CLAUDE.md`, "State"):
 
 - `shellcheck` and `sh -n` (dash) on every script and `setup.d` step.
-- `ibp-kiosk-status network` (real NetworkManager: "Connected to Wi-Fi
-  ..."), `server` (real: "IBP server not reachable" after 3 s, off the IBP
-  LAN; against a local fake `/api/health`: OK, 404, unreachable),
+- `ibp-kiosk-status network` (real NetworkManager, Wi-Fi), `server` (real:
+  not reachable after 3 s, off the IBP LAN; against a local fake
+  `/api/health`: OK, 404, unreachable),
   `printer-package` against a fake `/health` (ready, count 0, degraded, not
   running), `printer-shipping` against a fake sysfs tree (no printer, DYMO
   only, PM2411BT without node, without access, ready as BOB and BETTY,
@@ -418,24 +431,26 @@ Tested on the build machine (Pop!_OS, uv 0.12.9) on 2026-11-24:
 
 Not verified (needs the VM or the hardware):
 
-- Firefox: the policies and prefs under firefox-esr 153 (no restore page or
+- Firefox: the close button it draws in its tab bar under labwc; the
+  policies and prefs under firefox-esr 153 (no restore page or
   safe-mode prompt after SIGTERM/SIGKILL; `--name` as the Wayland app_id;
   `--no-remote` with two profiles), the extension installing in both
   profiles, label printing from IBP Requests to `localhost:40121`, and the
   extension's background requests to `http://ibp-server.local` under ESR
   153's local network access checks.
-- foot: the config is written from foot 1.21's documented keys but never
-  loaded; full screen under labwc; font size on the laptops.
-- shippy-gui (PyPI PySide6) under labwc: starts natively on Wayland with the
-  libraries `60-shipping.sh` installs; dialogs.
+- foot: font size on the laptops.
+- shippy-gui (PyPI PySide6): whether it runs natively on Wayland or falls
+  back to XWayland (the VM showed it maximized, with its Settings dialog as
+  a dialog), and font scaling on the laptops.
 - polkit: nmtui as `kiosk` can activate and edit connections.
 - udev: the group rule and autosuspend on the real PM-2411-BT and DYMO;
   `power/control` actually stays `on`.
 - The label watcher printing a label from `to-print` on the PM-2411-BT
-  (expected to work; see above), and running as a user service from boot.
+  (expected to work; see above).
 - Log upload against the real share (mount.cifs, rsync onto SMB, the
   `<hostname>` folder).
 - The print server under the service user and `IPAddressDeny`; pycups
   building on trixie; the DYMO queue commands above.
-- `setup.d` as a whole as root in the installer's chroot (runuser, uv
-  tool installs there, `systemctl --global enable`).
+- The uv tool preinstalls in the installer's chroot (the VM install ran
+  `setup.d` there; whether the preinstalls worked or the first launches
+  installed the tools is not recorded).
