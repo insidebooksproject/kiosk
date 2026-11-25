@@ -1,0 +1,21 @@
+# IBP station: at every boot, update from the ibp-kiosk repo's `deploy`
+# branch (see /usr/local/bin/ibp-kiosk-update). It runs in the background
+# and nothing waits for it: the launcher starts as usual.
+[Unit]
+Description=Update this IBP station from the ibp-kiosk deploy branch
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+# exec, not oneshot: a oneshot would hold up multi-user.target for as long
+# as an update takes.
+Type=exec
+ExecStart=/usr/local/bin/ibp-kiosk-update
+# A shutdown or restart during an update waits for it (up to 10 minutes)
+# instead of cutting apt off half-way: the stop "signal" is one that does
+# nothing.
+KillSignal=SIGCONT
+TimeoutStopSec=10min
+
+[Install]
+WantedBy=multi-user.target

@@ -18,6 +18,11 @@ command = ["ibp-kiosk-status", "network"]
 label = "IBP server"
 command = ["ibp-kiosk-status", "server"]
 
+[[status]]
+label = "Updates"
+command = ["ibp-kiosk-status", "update"]
+interval = 30
+
 [[admin]]
 id = "wifi"
 label = "Wi-Fi"

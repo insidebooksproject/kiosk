@@ -35,6 +35,7 @@ It asks for anything required and unset:
 | `KIOSK_ADMIN_PASSWORD` | password for `ibp` (sudo, console) |
 | `KIOSK_SSH_KEYS` | `authorized_keys` for `ibp`; default `~/.ssh/id_ed25519.pub` |
 | `KIOSK_TAILSCALE_AUTHKEY` | optional auth key: joins the tailnet as the hostname on first boot, then the key file is deleted. Use the IBP tailnet's station key (Bitwarden `tailscale insidebooksproject`, field `auth-key-station`) |
+| `KIOSK_UPDATE_BRANCH` | optional, not asked for: the branch the station updates itself from at boot (default `deploy`; empty turns updates off) |
 | `KIOSK_SHIPPY_CONFIG`, `KIOSK_SHIPPY_GUI_CONFIG` | shipping only: the `config.ini` files for shippy and shippy-gui |
 | `KIOSK_LOG_SHARE`, `KIOSK_LOG_USER`, `KIOSK_LOG_PASSWORD` | shipping only: the machine's Samba log share on ibp-server (`//host/share`) |
 
@@ -121,8 +122,20 @@ Nvidia graphics, driven by nouveau), log in over SSH and add
 - **Logs:** `journalctl -t ibp-kiosk` (labwc, the launcher and the apps).
 - **Wi-Fi:** the launcher's admin screen has a Wi-Fi entry (`nmtui`); from
   the console, `sudo nmtui`.
-- **Change the setup:** edit this repo, copy it over and rerun `setup.sh`
-  (it keeps the machine's profile; `-p NAME` switches it):
+- **Updates:** at every boot the station checks this repo's `deploy`
+  branch (`ibp-kiosk-update.service`, in the background) and, when the
+  branch has moved, downloads it and runs its `setup.sh`. The "Updates" chip
+  on the launcher shows how that went; `journalctl -u ibp-kiosk-update` has
+  the details. Launcher and window changes show after the next restart. A
+  failed update leaves the installed version running and is tried again at
+  the next boot; with no network nothing happens. **To release:** try the
+  change in the VM, merge it into `main`, then fast-forward `deploy`
+  (`git push origin main:deploy`). `/etc/ibp-kiosk/update.conf` can set
+  `UPDATE_BRANCH` (empty: no updates) and `UPDATE_URL`.
+- **Change one machine by hand:** edit this repo, copy it over and rerun
+  `setup.sh` (it keeps the machine's profile; `-p NAME` switches it). On a
+  machine that follows `deploy`, the next release replaces what you
+  copied:
 
   ```sh
   rsync -a --exclude build --exclude .git ./ ibp@<hostname>.local:ibp-kiosk/
@@ -131,7 +144,7 @@ Nvidia graphics, driven by nouveau), log in over SSH and add
 
   `SECRETS_DIR` is optional and holds the same files `build.sh` writes
   (`authorized_keys`, `wifi/*.nmconnection`, `tailscale-authkey`,
-  `shippy.ini`, `shippy-gui.ini`, `log-upload.conf`). Without it the
+  `shippy.ini`, `shippy-gui.ini`, `log-upload.conf`, `update.conf`). Without it the
   installed secrets are left as they are.
 
 ## Profiles

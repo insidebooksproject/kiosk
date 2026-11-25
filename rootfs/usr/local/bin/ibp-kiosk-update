@@ -1,0 +1,100 @@
+#!/bin/sh
+# ibp-kiosk-update: bring this station up to the ibp-kiosk repo's release
+# branch. ibp-kiosk-update.service runs it as root at every boot, in the
+# background: the launcher is already on screen.
+#
+# It asks the repo which commit the branch points at. When that is not the
+# commit installed here, it clones the branch and runs its setup.sh (which
+# keeps this machine's profile and secrets). Only a setup.sh that succeeds
+# is recorded, so a failed update is tried again at the next boot, and with
+# no network the installed version just keeps running.
+#
+# Releasing is fast-forwarding the branch. Launcher and labwc changes show
+# at the next start of the session (the next boot).
+#
+# /etc/ibp-kiosk/update.conf (optional, shell syntax) may set UPDATE_URL and
+# UPDATE_BRANCH; an empty UPDATE_BRANCH turns updates off (test builds).
+#
+# State, in /var/lib/ibp-kiosk/update: `commit` (the installed commit), `src`
+# (its checkout) and `status` ("ok|updating|failed TEXT", which
+# `ibp-kiosk-status update` shows). For testing, IBP_KIOSK_CONF_DIR and
+# IBP_KIOSK_UPDATE_STATE override the two directories.
+set -u
+umask 022
+
+CONF_DIR=${IBP_KIOSK_CONF_DIR:-/etc/ibp-kiosk}
+STATE=${IBP_KIOSK_UPDATE_STATE:-/var/lib/ibp-kiosk/update}
+UPDATE_URL=https://github.com/jonkensta/ibp-kiosk.git
+UPDATE_BRANCH=deploy
+if [ -r "$CONF_DIR/update.conf" ]; then
+    # shellcheck source=/dev/null
+    . "$CONF_DIR/update.conf"
+fi
+
+log() {
+    echo "ibp-kiosk-update: $*"
+}
+
+# status STATE TEXT: what `ibp-kiosk-status update` reports.
+status() {
+    printf '%s %s\n' "$1" "$2" >"$STATE/status.new" && mv "$STATE/status.new" "$STATE/status"
+}
+
+mkdir -p "$STATE" || exit 1
+chmod 755 "$STATE" "${STATE%/*}"
+
+if [ -z "$UPDATE_BRANCH" ]; then
+    log "updates are off (UPDATE_BRANCH is empty in $CONF_DIR/update.conf)"
+    status ok "Off on this machine"
+    exit 0
+fi
+
+export GIT_TERMINAL_PROMPT=0
+
+# Wi-Fi can come up after this starts: try for about two minutes.
+tries=0
+while :; do
+    remote=$(timeout 30 git ls-remote "$UPDATE_URL" "refs/heads/$UPDATE_BRANCH" 2>/dev/null | cut -f1)
+    [ -z "$remote" ] || break
+    tries=$((tries + 1))
+    if [ "$tries" -ge 6 ]; then
+        log "can't reach $UPDATE_URL ($UPDATE_BRANCH); keeping the installed version"
+        exit 0
+    fi
+    sleep 20
+done
+
+installed=$(cat "$STATE/commit" 2>/dev/null)
+if [ "$remote" = "$installed" ]; then
+    log "up to date ($remote)"
+    status ok "Up to date"
+    exit 0
+fi
+
+log "updating from ${installed:-the installed version} to $remote"
+status updating "Updating…"
+
+fail() {
+    log "$1; keeping the installed version and trying again at the next boot"
+    rm -rf "$STATE/src.new"
+    status failed "Update failed (tell an IBP admin)"
+    exit 1
+}
+
+rm -rf "$STATE/src.new"
+timeout 600 git clone -q --depth 1 --branch "$UPDATE_BRANCH" "$UPDATE_URL" "$STATE/src.new" ||
+    fail "can't download $UPDATE_URL ($UPDATE_BRANCH)"
+# The branch may have moved since ls-remote: record what was cloned.
+commit=$(git -C "$STATE/src.new" rev-parse HEAD) || fail "the download has no commit"
+[ -f "$STATE/src.new/setup.sh" ] || fail "the download has no setup.sh"
+
+# An update cut off by a power cut can leave dpkg half-way through.
+dpkg --configure -a || log "dpkg --configure -a failed; going on"
+
+sh "$STATE/src.new/setup.sh" || fail "setup.sh failed (commit $commit)"
+
+rm -rf "$STATE/src"
+mv "$STATE/src.new" "$STATE/src"
+printf '%s\n' "$commit" >"$STATE/commit"
+log "updated to $commit"
+status ok "Updated (restart to finish)"
