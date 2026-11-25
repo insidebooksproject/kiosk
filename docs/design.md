@@ -31,7 +31,7 @@ moving the server.
 |---|---|
 | TDCJ Book Portal | Firefox on `https://bookportal.tdcj.texas.gov/BookPortal/` with the IBP extension |
 | IBP Requests | Firefox on the IBP frontend on `ibp-server` |
-| IBP Packages | Firefox on the IBP frontend's packages page (scan a package label) |
+| IBP Packages | Firefox on the IBP frontend's packages page (record the books in a package) |
 | Ship Individual | `shippy individual` in a full-screen terminal |
 | Ship Bulk | `shippy bulk` in a full-screen terminal |
 | Ship Manual | `shippy-gui` |

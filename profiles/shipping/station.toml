@@ -33,7 +33,7 @@ command = ["ibp-kiosk-app", "requests"]
 [[tile]]
 id = "packages"
 label = "IBP Packages"
-description = "Scan a package label to open it"
+description = "Record the books in a package"
 command = ["ibp-kiosk-app", "packages"]
 
 [[status]]
