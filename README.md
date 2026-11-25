@@ -77,6 +77,32 @@ that boots it by accident never starts an install. The rest is unattended
 - If it stops on a question (usually the network), answer it and it carries
   on. The log is `/var/log/installer/syslog` on the installed machine.
 
+### On a MacBook
+
+Needs a 64-bit Intel MacBook (Core 2 Duo or later; not a T2 or Apple Silicon
+one). The 13-inch A1278 (2008-2012) is the one this was written for.
+
+1. Plug in power, the stick and **an Ethernet cable**. The installer has no
+   driver for the Broadcom Wi-Fi in these machines, so it installs over the
+   wire even when the stick was built with Wi-Fi. `setup.d/30-broadcom.sh`
+   then installs the driver (`broadcom-sta-dkms`, Broadcom's `wl`, for the
+   older chips; `firmware-brcm80211` for the newer ones), and the saved
+   Wi-Fi profiles work from the first boot.
+2. Hold **Option** and press the power button. Keep holding until the boot
+   picker appears, choose **EFI Boot** (the orange USB icon), then the
+   install entry.
+3. When it reboots, pull the stick. Once the launcher's Network chip shows
+   a connection, unplug the cable and check it changes to the Wi-Fi's name.
+
+On a Mac keyboard the Home key is **Command**. The function keys need
+**fn**: Home is also fn+F12, the admin console is Ctrl+Option+fn+F2 and back
+is Ctrl+Option+fn+F1. The admin screen is Ctrl+Option+A.
+
+If the screen stays black after the install (the 2008-2010 models have
+Nvidia graphics, driven by nouveau), log in over SSH and add
+`WLR_RENDERER=pixman` to `/etc/ibp-kiosk/labwc/environment`, then
+`sudo systemctl restart getty@tty1`.
+
 ## Running it
 
 - **Off/on:** closing the lid or pressing the power button shuts down
