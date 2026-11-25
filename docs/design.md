@@ -200,8 +200,8 @@ taken first.
 
 ## Open questions
 
-- **Host names.** Not decided. The preference is codenames (for example
-  Ninja Turtle characters) instead of `ibp-laptop` and `ibp-laptop2`; the
-  names and their log shares are settled before step 4.
+- **Host names.** The convention is decided (2026-11-25): `ibp-<name>` with
+  a Tolkien character, instead of `ibp-laptop` and `ibp-laptop2`. Which
+  machine gets which name, and their log shares, are settled before step 4.
 - **Home key.** Super is the proposal; whether volunteers find it is a
   question for the first on-site session.
