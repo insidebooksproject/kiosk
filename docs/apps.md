@@ -223,8 +223,9 @@ station without feature `shipping` the tool installs itself on first use.
 ## Status checks (`ibp-kiosk-status`)
 
 Every external call has a timeout; the slowest case is about 6 s. The
-launcher shows each text after the check's label, on one line ("IBP server:
-Not reachable"), so the texts don't repeat the label.
+launcher's strip shows only a mark and the check's label; the text is the
+chip's tooltip, after the label ("IBP server: Not reachable"), so the texts
+don't repeat the label.
 
 | Check | How | Texts |
 |---|---|---|

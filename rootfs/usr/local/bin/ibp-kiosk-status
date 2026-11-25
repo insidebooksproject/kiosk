@@ -1,9 +1,8 @@
 #!/bin/sh
 # ibp-kiosk-status CHECK: one status check for the launcher's status strip.
 # Exit 0 = fine, 1 = problem, 2 = usage error. The first line of stdout is a
-# short text for a volunteer. The launcher shows it after the check's label
-# ("IBP server: Not reachable"), on one line, so it doesn't repeat the label
-# and stays short. Every external call has a timeout, so a check
+# short text for a volunteer. The launcher shows it as a tooltip, after the check's
+# label ("IBP server: Not reachable"), so it doesn't repeat the label. Every external call has a timeout, so a check
 # finishes in well under 10 s and never hangs.
 #
 #   network           Wi-Fi or cable connection (NetworkManager)
