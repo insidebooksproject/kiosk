@@ -191,6 +191,15 @@ Host names are `ibp-<name>`, where the name is a Tolkien character (decided
 stays when the profile changes; the role volunteers see is `name` in
 `station.toml`. `ibp-april` was named before this.
 
+Every kiosk machine joins the **IBP tailnet** (GitHub organisation
+`insidebooksproject`, set up 2026-11-25), never jstarr's personal one. Build
+with `KIOSK_TAILSCALE_AUTHKEY` set to the hidden field `auth-key-station` of
+Bitwarden `tailscale insidebooksproject`: it tags the machine
+`tag:ibp-station`, which may reach the server on tcp 80 and 445 only. Don't
+sign a station in interactively: an untagged machine belongs to the person
+and gets admin access. The move of the existing hosts is in ibp-meta's
+`BACKLOG.md`.
+
 ### MacBook `ibp-april` (model A1278)
 
 Installer stick written 2026-11-24 (the 14.6 GB USB flash drive): profile
