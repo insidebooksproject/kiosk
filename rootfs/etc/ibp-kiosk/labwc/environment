@@ -1,0 +1,12 @@
+# labwc reads this (not a shell script: one VAR=value per line) and passes
+# it to everything it starts, including the launcher and the apps.
+XDG_SESSION_TYPE=wayland
+XKB_DEFAULT_LAYOUT=us
+XCURSOR_THEME=Adwaita
+XCURSOR_SIZE=24
+# Native Wayland for Qt (launcher, shippy-gui) and Firefox; X11 as fallback
+QT_QPA_PLATFORM=wayland;xcb
+MOZ_ENABLE_WAYLAND=1
+# Start even when the only OpenGL is Mesa's software one (no GPU driver,
+# some VMs) rather than leave a black screen
+WLR_RENDERER_ALLOW_SOFTWARE=1

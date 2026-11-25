@@ -1,0 +1,47 @@
+# Base system and session (Debian 13 trixie). setup.sh installs the union
+# of packages/*.txt with --no-install-recommends, plus tailscale from
+# Tailscale's own repo.
+
+# Session: labwc (pulls in xwayland), a background, cursors, fonts, GPU drivers
+labwc
+swaybg
+adwaita-icon-theme
+fonts-dejavu-core
+libgl1-mesa-dri
+mesa-vulkan-drivers
+dbus-user-session
+# logind needs it to allow Ctrl+Alt+F<n> VT switching from the session
+polkitd
+
+# Network: NetworkManager (nmtui for the admin screen), mDNS for
+# ibp-server.local and <hostname>.local
+network-manager
+wpasupplicant
+wireless-regdb
+avahi-daemon
+libnss-mdns
+
+# Firmware and microcode for the targets (Acer laptops, the Chromebook, the
+# intake desktop); the installer adds whatever else the machine needs
+firmware-amd-graphics
+firmware-intel-graphics
+firmware-iwlwifi
+firmware-realtek
+firmware-mediatek
+firmware-atheros
+firmware-brcm80211
+amd64-microcode
+intel-microcode
+
+# Admin and upkeep
+openssh-server
+sudo
+unattended-upgrades
+zram-tools
+systemd-timesyncd
+ca-certificates
+curl
+rsync
+less
+pciutils
+usbutils

@@ -1,0 +1,24 @@
+# Book Portal kiosk: the portal opens at boot; when it is closed (or the
+# Home key is pressed) the launcher shows its one tile.
+
+[station]
+autostart = "portal"
+
+[[tile]]
+id = "portal"
+label = "TDCJ Book Portal"
+description = "Register books with TDCJ"
+command = ["ibp-kiosk-app", "portal"]
+
+[[status]]
+label = "Network"
+command = ["ibp-kiosk-status", "network"]
+
+[[status]]
+label = "IBP server"
+command = ["ibp-kiosk-status", "server"]
+
+[[admin]]
+id = "wifi"
+label = "Wi-Fi"
+command = ["ibp-kiosk-app", "wifi"]

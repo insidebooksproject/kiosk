@@ -1,0 +1,54 @@
+# Shipping laptop. The station name defaults to the hostname.
+
+[[tile]]
+id = "ship-individual"
+label = "Ship Individual"
+description = "Scan a request and mail it to one person"
+command = ["ibp-kiosk-app", "ship-individual"]
+
+[[tile]]
+id = "ship-bulk"
+label = "Ship Bulk"
+description = "Mail a box to a prison unit"
+command = ["ibp-kiosk-app", "ship-bulk"]
+
+[[tile]]
+id = "ship-manual"
+label = "Ship Manual"
+description = "Type in any address by hand"
+command = ["ibp-kiosk-app", "ship-manual"]
+
+[[tile]]
+id = "portal"
+label = "TDCJ Book Portal"
+description = "Register books with TDCJ"
+command = ["ibp-kiosk-app", "portal"]
+
+[[tile]]
+id = "requests"
+label = "IBP Requests"
+description = "Look up and enter book requests"
+command = ["ibp-kiosk-app", "requests"]
+
+[[status]]
+label = "Network"
+command = ["ibp-kiosk-status", "network"]
+
+[[status]]
+label = "IBP server"
+command = ["ibp-kiosk-status", "server"]
+
+[[status]]
+label = "Label printer"
+command = ["ibp-kiosk-status", "printer-shipping"]
+
+[[admin]]
+id = "wifi"
+label = "Wi-Fi"
+command = ["ibp-kiosk-app", "wifi"]
+
+[[admin]]
+id = "print-diag"
+label = "Printer check"
+description = "Show what the label printer is doing"
+command = ["ibp-kiosk-app", "print-diag"]

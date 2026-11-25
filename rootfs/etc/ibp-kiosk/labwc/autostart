@@ -1,0 +1,4 @@
+# Run by labwc with sh when it starts. The launcher isn't started here: it is
+# labwc's session client (-S in ibp-kiosk-session), so labwc ends with it.
+# A plain dark background behind the windows:
+swaybg -c 1d2125 >/dev/null 2>&1 &

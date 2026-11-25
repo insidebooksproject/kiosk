@@ -1,0 +1,15 @@
+[Unit]
+Description=Join the tailnet with the one-time auth key from the installer
+Requires=tailscaled.service
+After=tailscaled.service network-online.target
+Wants=network-online.target
+ConditionPathExists=/etc/ibp-kiosk/tailscale-authkey
+
+[Service]
+Type=oneshot
+# %H is the hostname build.sh baked into the install
+ExecStart=/usr/bin/tailscale up --hostname=%H --auth-key=file:/etc/ibp-kiosk/tailscale-authkey
+ExecStartPost=/bin/rm -f /etc/ibp-kiosk/tailscale-authkey
+
+[Install]
+WantedBy=multi-user.target
