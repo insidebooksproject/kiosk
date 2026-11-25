@@ -1,7 +1,8 @@
 #!/bin/sh
 # ibp-kiosk-status CHECK: one status check for the launcher's status strip.
 # Exit 0 = fine, 1 = problem, 2 = usage error. The first line of stdout is a
-# short text for a volunteer. Every external call has a timeout, so a check
+# short text for a volunteer. The launcher shows it as a tooltip, after the check's
+# label ("IBP server: Not reachable"), so it doesn't repeat the label. Every external call has a timeout, so a check
 # finishes in well under 10 s and never hangs.
 #
 #   network           Wi-Fi or cable connection (NetworkManager)
@@ -46,9 +47,9 @@ nm_unescape() {
 }
 
 check_network() {
-    command -v nmcli >/dev/null 2>&1 || say "Can't check the network" 1
+    command -v nmcli >/dev/null 2>&1 || say "Can't check" 1
     devices=$(timeout 2 nmcli -t -f TYPE,STATE device 2>/dev/null) ||
-        say "Can't check the network" 1
+        say "Can't check" 1
     wifi=no wired=no
     printf '%s\n' "$devices" | grep -qx 'wifi:connected' && wifi=yes
     printf '%s\n' "$devices" | grep -qx 'ethernet:connected' && wired=yes
@@ -57,15 +58,15 @@ check_network() {
             sed -n 's/^yes://p' | head -n 1 | nm_unescape)
         what="Wi-Fi${ssid:+ $ssid}"
     elif [ "$wired" = yes ]; then
-        what="network cable"
+        what="Cable"
     else
-        say "No network" 1
+        say "Not connected" 1
     fi
     # "unknown" (no connectivity check configured) counts as fine.
     case $(timeout 2 nmcli networking connectivity 2>/dev/null) in
-    none | limited | portal) say "Connected to $what, but no internet" 1 ;;
+    none | limited | portal) say "$what, but no internet" 1 ;;
     esac
-    say "Connected to $what" 0
+    say "$what" 0
 }
 
 check_server() {
@@ -75,13 +76,13 @@ check_server() {
     case $code in
     200)
         if printf '%s\n' "$reply" | grep -q '"status": *"ok"'; then
-            say "IBP server OK" 0
+            say "OK" 0
         fi
-        say "IBP server not working right" 1
+        say "Not working right" 1
         ;;
-    503) say "IBP server database problem" 1 ;;
-    000 | '') say "IBP server not reachable" 1 ;;
-    *) say "IBP server error ($code)" 1 ;;
+    503) say "Database problem" 1 ;;
+    000 | '') say "Not reachable" 1 ;;
+    *) say "Error ($code)" 1 ;;
     esac
 }
 
@@ -118,12 +119,12 @@ check_printer_shipping() {
         found=yes
         node=$DEV/usb/${entry##*/}
         if [ ! -e "$node" ]; then
-            problem="Label printer not ready (no device file)"
+            problem="Not ready (no device file)"
         elif [ ! -r "$node" ] || [ ! -w "$node" ]; then
-            problem="Label printer plugged in, but not allowed (udev rule missing?)"
+            problem="Plugged in, but not allowed (udev rule missing?)"
         else
             serial=$(cat "$usb/serial" 2>/dev/null)
-            say "Label printer ready$(printer_name "$serial")" 0
+            say "Ready$(printer_name "$serial")" 0
         fi
     done
     [ "$found" = yes ] && say "$problem" 1
@@ -131,23 +132,23 @@ check_printer_shipping() {
     for usb in "$SYS"/bus/usb/devices/*; do
         [ "$(cat "$usb/idVendor" 2>/dev/null)" = "$PM2411BT_VID" ] || continue
         [ "$(cat "$usb/idProduct" 2>/dev/null)" = "$PM2411BT_PID" ] || continue
-        say "Label printer plugged in, but not detected (try replugging it)" 1
+        say "Plugged in, but not detected (try replugging it)" 1
     done
-    say "No label printer plugged in" 1
+    say "Not plugged in" 1
 }
 
 check_printer_package() {
     reply=$(curl -s --connect-timeout 2 -m 4 "$PRINT_SERVER_URL/health" 2>/dev/null) ||
-        say "Label print server not running" 1
+        say "Print server not running" 1
     count=$(printf '%s\n' "$reply" | tr -d '\n' |
         sed -n 's/.*"count": *\([0-9][0-9]*\).*/\1/p')
     if ! printf '%s\n' "$reply" | grep -q '"status": *"ok"'; then
-        say "Label printer problem (see the print server log)" 1
+        say "Problem (see the print server log)" 1
     fi
     case $count in
-    '') say "Label print server not working right" 1 ;;
-    0) say "No label printer plugged in" 1 ;;
-    *) say "Label printer ready" 0 ;;
+    '') say "Print server not working right" 1 ;;
+    0) say "Not plugged in" 1 ;;
+    *) say "Ready" 0 ;;
     esac
 }
 

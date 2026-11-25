@@ -12,7 +12,7 @@ from collections.abc import Callable
 from pathlib import Path
 
 from PySide6.QtCore import QObject, Qt, QTimer, Signal
-from PySide6.QtGui import QCloseEvent, QKeyEvent, QKeySequence, QShortcut
+from PySide6.QtGui import QCloseEvent, QKeyEvent, QKeySequence, QMouseEvent, QShortcut
 from PySide6.QtNetwork import QAbstractSocket, QNetworkInterface
 from PySide6.QtWidgets import (
     QFrame,
@@ -23,6 +23,7 @@ from PySide6.QtWidgets import (
     QPushButton,
     QSizePolicy,
     QStackedWidget,
+    QToolTip,
     QVBoxLayout,
     QWidget,
 )
@@ -74,6 +75,10 @@ QLabel#chip {
     border-radius: 8px; padding: 6px 14px;
 }
 QLabel#chip[state="bad"] { background: #ffd7d7; border: 3px solid #c62828; }
+QToolTip {
+    font-size: 20px; color: #111111; background: #ffffff;
+    border: 2px solid #111111; padding: 6px 10px;
+}
 """
 
 
@@ -175,6 +180,14 @@ class TileGrid(QWidget):
             self.buttons[0].setFocus(Qt.FocusReason.OtherFocusReason)
 
 
+class Chip(QLabel):
+    """One status check: a mark and the check's label. What the check said is
+    the tooltip, shown on hover and at once on a click or tap."""
+
+    def mousePressEvent(self, event: QMouseEvent) -> None:
+        QToolTip.showText(event.globalPosition().toPoint(), self.toolTip(), self)
+
+
 class StatusStrip(QFrame):
     def __init__(self, config: Config | None) -> None:
         super().__init__()
@@ -182,14 +195,15 @@ class StatusStrip(QFrame):
         layout = QHBoxLayout(self)
         layout.setContentsMargins(24, 10, 24, 10)
         layout.setSpacing(16)
-        self.chips: list[QLabel] = []
+        self.chips: list[Chip] = []
         self.labels: list[str] = []
         for check in config.statuses if config else ():
-            chip = QLabel()
+            chip = Chip()
             chip.setObjectName("chip")
+            chip.setAlignment(Qt.AlignmentFlag.AlignCenter)
             self.labels.append(check.label)
-            # Chips share the width and wrap their text, so a long message
-            # can never make the window wider than the screen.
+            # Chips share the width equally. Wrapping means a long label can
+            # never make the window wider than the screen.
             chip.setWordWrap(True)
             chip.setMinimumWidth(120)
             self.chips.append(chip)
@@ -207,7 +221,8 @@ class StatusStrip(QFrame):
 
     def _show(self, index: int, symbol: str, text: str, ok: bool | None) -> None:
         chip = self.chips[index]
-        chip.setText(f"{symbol} <b>{_html(self.labels[index])}:</b> {_html(text)}")
+        chip.setText(f"{symbol} <b>{_html(self.labels[index])}</b>")
+        chip.setToolTip(f"{self.labels[index]}: {text}")
         chip.setProperty("state", "bad" if ok is False else "good")
         chip.style().unpolish(chip)
         chip.style().polish(chip)

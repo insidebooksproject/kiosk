@@ -24,7 +24,7 @@ TILES = (
 CONFIG = Config(
     name="Test station",
     tiles=TILES,
-    statuses=(StatusCheck("Network", ("true",)),),
+    statuses=(StatusCheck("Network", ("true",)), StatusCheck("Label printer", ("true",))),
     admin=(Tile("adm", "Admin thing", ("sleep", "30")),),
 )
 
@@ -128,12 +128,23 @@ def test_admin_screen(window: MainWindow, wait_until: Callable[..., None]) -> No
 
 def test_status_strip(window: MainWindow) -> None:
     chip = window.strip.chips[0]
-    assert "Checking" in chip.text()
-    window.strip.set_result(0, CheckResult(True, "Connected"))
-    assert "✓" in chip.text() and "Connected" in chip.text()
-    window.strip.set_result(0, CheckResult(False, "No Wi-Fi"))
-    assert "✗" in chip.text() and "No Wi-Fi" in chip.text()
+    assert "Network" in chip.text() and chip.toolTip() == "Network: Checking"
+    window.strip.set_result(0, CheckResult(True, "Wi-Fi Vesper"))
+    assert "✓" in chip.text() and "Vesper" not in chip.text()
+    assert chip.toolTip() == "Network: Wi-Fi Vesper"
+    window.strip.set_result(0, CheckResult(False, "Not connected"))
+    assert "✗" in chip.text() and chip.toolTip() == "Network: Not connected"
     assert chip.property("state") == "bad"
+
+
+def test_status_chips_share_the_width(window: MainWindow) -> None:
+    window.strip.set_result(0, CheckResult(True, "Cable"))
+    window.strip.set_result(1, CheckResult(False, "Plugged in, but not detected (try replugging it)"))
+    QTest.qWait(50)
+    first, second = window.strip.chips
+    assert abs(first.width() - second.width()) <= 1
+    assert first.height() == second.height()
+    assert first.x() + first.width() < second.x() and second.geometry().right() < window.width()
 
 
 def test_power_confirm_and_cancel(window: MainWindow, monkeypatch: pytest.MonkeyPatch) -> None:
