@@ -3,7 +3,7 @@
 [[tile]]
 id = "ship-individual"
 label = "Ship Individual"
-description = "Scan a request and mail it to one person"
+description = "Mail a package to one inmate"
 command = ["ibp-kiosk-app", "ship-individual"]
 
 [[tile]]
@@ -29,6 +29,12 @@ id = "requests"
 label = "IBP Requests"
 description = "Look up and enter book requests"
 command = ["ibp-kiosk-app", "requests"]
+
+[[tile]]
+id = "packages"
+label = "IBP Packages"
+description = "Record the books in a package"
+command = ["ibp-kiosk-app", "packages"]
 
 [[status]]
 label = "Network"

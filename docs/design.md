@@ -31,6 +31,7 @@ moving the server.
 |---|---|
 | TDCJ Book Portal | Firefox on `https://bookportal.tdcj.texas.gov/BookPortal/` with the IBP extension |
 | IBP Requests | Firefox on the IBP frontend on `ibp-server` |
+| IBP Packages | Firefox on the IBP frontend's packages page (record the books in a package) |
 | Ship Individual | `shippy individual` in a full-screen terminal |
 | Ship Bulk | `shippy bulk` in a full-screen terminal |
 | Ship Manual | `shippy-gui` |
@@ -40,7 +41,7 @@ serves each role:
 
 | Station | Tiles |
 |---|---|
-| Shipping laptop | All five |
+| Shipping laptop | All six |
 | Intake station | IBP Requests (plus the Book Portal if wanted) |
 | Book Portal kiosk | TDCJ Book Portal only; with one tile the launcher is skipped and the app opens at boot, as now |
 
