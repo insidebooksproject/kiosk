@@ -34,7 +34,7 @@ It asks for anything required and unset:
 | `KIOSK_WIFI_SSID`, `KIOSK_WIFI_PSK` | Wi-Fi (WPA2 personal), used by the installer and the station. Empty SSID: no Wi-Fi, and the install needs an Ethernet cable |
 | `KIOSK_ADMIN_PASSWORD` | password for `ibp` (sudo, console) |
 | `KIOSK_SSH_KEYS` | `authorized_keys` for `ibp`; default `~/.ssh/id_ed25519.pub` |
-| `KIOSK_TAILSCALE_AUTHKEY` | optional one-time key: joins the tailnet as the hostname on first boot, then the key is deleted |
+| `KIOSK_TAILSCALE_AUTHKEY` | optional auth key: joins the tailnet as the hostname on first boot, then the key file is deleted. Use the IBP tailnet's station key (Bitwarden `tailscale insidebooksproject`, field `auth-key-station`) |
 | `KIOSK_SHIPPY_CONFIG`, `KIOSK_SHIPPY_GUI_CONFIG` | shipping only: the `config.ini` files for shippy and shippy-gui |
 | `KIOSK_LOG_SHARE`, `KIOSK_LOG_USER`, `KIOSK_LOG_PASSWORD` | shipping only: the machine's Samba log share on ibp-server (`//host/share`) |
 
@@ -112,7 +112,8 @@ Nvidia graphics, driven by nouveau), log in over SSH and add
 - **Admin console:** Ctrl+Alt+F2, log in as `ibp`. Ctrl+Alt+F1 returns to
   the station.
 - **SSH:** `ssh ibp@<hostname>.local` on the LAN, or `<hostname>` on the
-  tailnet. To join the tailnet by hand: `sudo tailscale up --hostname=$(hostname)`.
+  tailnet. To join the IBP tailnet by hand, use the station key, not a
+  browser sign-in: `sudo tailscale up --hostname=$(hostname) --auth-key=<key>`.
 - **Restart the session:** `sudo systemctl restart getty@tty1`.
 - **Logs:** `journalctl -t ibp-kiosk` (labwc, the launcher and the apps).
 - **Wi-Fi:** the launcher's admin screen has a Wi-Fi entry (`nmtui`); from
