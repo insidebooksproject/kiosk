@@ -24,7 +24,7 @@ umask 022
 
 CONF_DIR=${IBP_KIOSK_CONF_DIR:-/etc/ibp-kiosk}
 STATE=${IBP_KIOSK_UPDATE_STATE:-/var/lib/ibp-kiosk/update}
-UPDATE_URL=https://github.com/jonkensta/ibp-kiosk.git
+UPDATE_URL=https://github.com/insidebooksproject/kiosk.git
 UPDATE_BRANCH=deploy
 if [ -r "$CONF_DIR/update.conf" ]; then
     # shellcheck source=/dev/null

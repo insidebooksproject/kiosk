@@ -110,7 +110,7 @@ last lines of its output instead of silently returning to the tiles.
   and can open other tabs. The Book Portal login goes through ID.me, so
   any site allow-list must include it.
 - **shippy** runs as today, with uvx from the `deploy` branch:
-  `uvx --from git+https://github.com/jonkensta/shippy.git@deploy shippy --config /etc/ibp-kiosk/shippy.ini bulk|individual`,
+  `uvx --from git+https://github.com/insidebooksproject/shippy.git@deploy shippy --config /etc/ibp-kiosk/shippy.ini bulk|individual`,
   inside a terminal (foot) with a large font. When shippy exits, the terminal
   closes and the launcher returns.
 - **shippy-gui** runs with uvx from `deploy`, from a working directory that
