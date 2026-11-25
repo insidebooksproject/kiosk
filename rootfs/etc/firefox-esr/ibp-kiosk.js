@@ -1,5 +1,5 @@
 // IBP station. Debian's firefox-esr reads every .js file in /etc/firefox-esr;
-// these apply to both browser tiles (portal and requests). Policies (the
+// these apply to every browser tile (portal, requests, packages). Policies (the
 // extension, lockdown) are in /usr/share/firefox-esr/distribution/policies.json.
 // Each tile's start page is in its own profile's user.js, written by
 // ibp-kiosk-app. The 2 GB Chromebook also gets ibp-kiosk-low-memory.js

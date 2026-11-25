@@ -1,5 +1,5 @@
 #!/bin/sh
-# ibp-kiosk-update: bring this station up to the ibp-kiosk repo's release
+# ibp-kiosk-update: bring this station up to the kiosk repo's release
 # branch. ibp-kiosk-update.service runs it as root at every boot, in the
 # background: the launcher is already on screen.
 #

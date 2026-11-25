@@ -4,7 +4,7 @@
 # cups-client, the PySide6 wheel's system libraries), 70-package-printer.sh
 # (CUPS, the DYMO driver, a compiler for pycups).
 
-# The browser tiles (Book Portal, IBP Requests)
+# The browser tiles (Book Portal, IBP Requests, IBP Packages)
 firefox-esr
 # The terminal tiles (Ship Individual, Ship Bulk, Wi-Fi, Printer check);
 # foot pulls in ncurses-term, which has its terminfo
