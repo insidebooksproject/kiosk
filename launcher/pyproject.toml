@@ -1,0 +1,23 @@
+# For development and tests only. On a station the package is copied to
+# /usr/local/lib/ibp-kiosk and run with Debian's python3 and PySide6
+# (see packages/launcher.txt); nothing here is installed there.
+[project]
+name = "ibp-kiosk-launcher"
+version = "0.1.0"
+description = "Full-screen launcher for IBP volunteer stations"
+requires-python = ">=3.12"
+# Same minor version as Debian 13 (python3-pyside6.* 6.8.2.1)
+dependencies = ["PySide6-Essentials==6.8.2.1"]
+
+[dependency-groups]
+dev = ["pytest>=8"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["ibp_kiosk"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

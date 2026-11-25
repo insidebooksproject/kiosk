@@ -1,0 +1,59 @@
+# A station.toml for trying the launcher on a development machine.
+# The real ones are in profiles/<name>/station.toml.
+
+[station]
+name = "Dev station"
+
+[[tile]]
+id = "terminal"
+label = "Terminal"
+description = "An xterm; close it to come back"
+command = ["xterm"]
+
+[[tile]]
+id = "wait"
+label = "Wait a minute"
+description = "Runs sleep 60; press Home to stop it"
+command = ["sleep", "60"]
+
+[[tile]]
+id = "broken"
+label = "Broken app"
+description = "Prints a few lines and fails"
+command = ["sh", "-c", "for i in 1 2 3; do echo \"line $i\"; done; echo 'something went wrong' >&2; exit 2"]
+
+[[tile]]
+id = "quick"
+label = "Quick exit"
+description = "Exits at once with success"
+command = ["true"]
+
+[[tile]]
+id = "missing"
+label = "Not installed"
+command = ["no-such-program"]
+
+[[status]]
+label = "Network"
+command = ["sh", "-c", "echo Connected"]
+interval = 15
+
+[[status]]
+label = "Server"
+command = ["sh", "-c", "echo 'Not reachable'; exit 1"]
+interval = 15
+
+[[status]]
+label = "Slow check"
+command = ["sleep", "30"]
+interval = 30
+
+[[admin]]
+id = "admin-terminal"
+label = "Terminal"
+command = ["xterm"]
+
+[[admin]]
+id = "admin-fail"
+label = "Print test"
+command = ["false"]
