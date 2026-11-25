@@ -4,8 +4,8 @@
 # is missing, it prints one line for the volunteer on stderr and exits 1
 # (2 for a usage error); the launcher shows that line.
 #
-#   portal           Firefox, kiosk mode, TDCJ Book Portal, own profile
-#   requests         Firefox, kiosk mode, IBP frontend, own profile
+#   portal           Firefox, TDCJ Book Portal, own profile
+#   requests         Firefox, IBP frontend, own profile
 #   ship-individual  shippy individual, full-screen terminal
 #   ship-bulk        shippy bulk, full-screen terminal
 #   ship-manual      shippy-gui
@@ -108,7 +108,7 @@ user_pref("browser.startup.homepage", "$url");
 EOF
     export MOZ_CRASHREPORTER_DISABLE=1 MOZ_ENABLE_WAYLAND=1
     # --name sets the Wayland app_id (labwc window rules can match it).
-    run firefox-esr --kiosk --no-remote --profile "$profile" \
+    run firefox-esr --no-remote --profile "$profile" \
         --name "ibp-kiosk-$name" "$url"
 }
 

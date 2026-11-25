@@ -45,8 +45,8 @@ installer this one grew from.
 | `ibp-kiosk-session` | Started from the `kiosk` login on tty1; runs labwc, which starts the launcher |
 | `ibp-kiosk-launcher` | Runs the launcher (`python3 -m ibp_kiosk`) |
 | `ibp-kiosk-launcher home` | Tells the running launcher to close the current app and show the tiles. labwc binds the Super key to it |
-| `ibp-kiosk-app portal` | Firefox, kiosk mode, on the TDCJ Book Portal, own profile |
-| `ibp-kiosk-app requests` | Firefox, kiosk mode, on the IBP frontend, own profile |
+| `ibp-kiosk-app portal` | Firefox (an ordinary window with tabs, not kiosk mode; its close button returns to the tiles) on the TDCJ Book Portal, own profile |
+| `ibp-kiosk-app requests` | The same on the IBP frontend, own profile |
 | `ibp-kiosk-app ship-individual` / `ship-bulk` | shippy in a full-screen terminal |
 | `ibp-kiosk-app ship-manual` | shippy-gui |
 | `ibp-kiosk-app wifi` | `nmtui` in a terminal (admin screen) |

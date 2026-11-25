@@ -107,6 +107,8 @@ Nvidia graphics, driven by nouveau), log in over SSH and add
 
 - **Off/on:** closing the lid or pressing the power button shuts down
   cleanly; it never suspends. The power button starts it again.
+- **Closing the browser:** Firefox is an ordinary window with tabs; its
+  close button (top right) returns to the tiles.
 - **Home key:** the Windows (Super) key on its own, or F12, closes the
   current app and shows the tiles. On the Chromebook it is the Search key.
 - **Admin console:** Ctrl+Alt+F2, log in as `ibp`. Ctrl+Alt+F1 returns to
