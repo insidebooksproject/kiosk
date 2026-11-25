@@ -1,0 +1,5 @@
+# uv on the IBP station (installed by setup.d/50-apps.sh). Every uv run
+# (ibp-kiosk-tool, an admin's own) uses Debian's python3 (3.13) and never
+# downloads a Python: Debian keeps that one patched.
+python-preference = "only-system"
+python-downloads = "never"
