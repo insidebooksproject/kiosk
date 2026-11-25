@@ -38,6 +38,11 @@
       "MoreFromMozilla": false,
       "FirefoxLabs": false,
       "Locked": true
+    },
+    "WebsiteFilter": {
+      "Block": [
+        "file:///*"
+      ]
     }
   }
 }

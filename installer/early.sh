@@ -4,7 +4,23 @@
 # and virtual devices are skipped, which keeps the installer from wiping the
 # stick itself; then it refuses to run unless exactly one disk is left, so it
 # never has to guess which one to erase.
+#
+# Refusing means never returning. debian-installer treats a failed
+# early_command as a dialog to click through, and then partitions whatever
+# disk it finds without asking (the confirmations are preseeded). So on a
+# refusal, or on any error in this script, it logs the reason and waits
+# forever: the install stays at "partitioning", Alt+F4 shows the log, and the
+# only way on is to power off.
 set -e
+
+refuse() {
+    set +e
+    logger -t ibp-kiosk "NOT INSTALLING: $1. Power off; nothing was erased."
+    echo "IBP kiosk: not installing: $1" >&2
+    trap - EXIT
+    while :; do sleep 3600; done
+}
+trap 'refuse "early.sh failed unexpectedly"' EXIT
 
 disks=""
 count=0
@@ -24,9 +40,8 @@ done
 disks=${disks# }
 
 if [ "$count" -ne 1 ]; then
-    logger -t ibp-kiosk "need exactly one internal disk, found $count ($disks); refusing to partition"
-    echo "IBP kiosk: need exactly one internal disk, found $count ($disks); not installing." >&2
-    exit 1
+    refuse "need exactly one internal disk, found $count ($disks)"
 fi
 logger -t ibp-kiosk "installing to $disks"
 debconf-set partman-auto/disk "$disks"
+trap - EXIT

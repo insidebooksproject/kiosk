@@ -6,6 +6,10 @@
 #   ./test-vm.sh install [--mem 2G|4G] [--iso FILE]
 #                 wipe the VM disk and boot the ISO (press Enter at the menu);
 #                 QEMU exits when the installer reboots
+#   ./test-vm.sh install --two-disks
+#                 the same with a second internal disk: the installer must
+#                 refuse (it waits at partitioning; both disks stay empty:
+#                 du -h build/vm/disk*.img)
 #   ./test-vm.sh [--mem 2G|4G]
 #                 boot the installed VM
 #   ./test-vm.sh monitor 'COMMAND'
@@ -27,7 +31,7 @@ vm=build/vm
 ovmf=/usr/share/OVMF
 mkdir -p "$vm"
 
-mode=boot mem=4G iso=""
+mode=boot mem=4G iso="" two=""
 while [ $# -gt 0 ]; do
     case "$1" in
         install) mode=install ;;
@@ -39,6 +43,7 @@ while [ $# -gt 0 ]; do
             exit 0 ;;
         --mem) mem=${2:-}; shift ;;
         --iso) iso=${2:-}; shift ;;
+        --two-disks) two=1 ;;
         *) echo "unknown argument: $1 (see the top of $0)" >&2; exit 2 ;;
     esac
     shift
@@ -66,6 +71,12 @@ if [ "$mode" = install ]; then
     args+=(-drive "if=none,id=usb,format=raw,readonly=on,file=$iso"
            -device usb-storage,drive=usb,bootindex=0
            -no-reboot)
+    if [ -n "$two" ]; then
+        rm -f "$vm/disk2.img"
+        truncate -s 8G "$vm/disk2.img"
+        args+=(-drive "if=none,id=disk2,format=raw,file=$vm/disk2.img"
+               -device nvme,drive=disk2,serial=ibpkiosk2)
+    fi
 fi
 [ -f "$vm/disk.img" ] || truncate -s 16G "$vm/disk.img"
 [ -f "$vm/vars.fd" ] || cp "$ovmf/OVMF_VARS_4M.fd" "$vm/vars.fd"

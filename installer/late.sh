@@ -6,6 +6,8 @@ set -e
 
 dest=/target/root/ibp-kiosk-install
 rm -rf "$dest"
+# The copy holds the secrets: remove it even when setup.sh fails.
+trap 'rm -rf "$dest"' EXIT
 cp -r /kiosk "$dest"
 profile=$(cat /kiosk/profile)
 in-target sh /root/ibp-kiosk-install/setup.sh -p "$profile" \

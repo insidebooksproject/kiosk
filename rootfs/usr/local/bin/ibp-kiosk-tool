@@ -85,8 +85,13 @@ stamp=$STATE/$key.spec
 
 # One install or upgrade of a tool at a time (the label watcher and
 # ibp-print-diag share ibp-printing). fd 9 is closed again before the app
-# runs, so a long-running app never holds the lock.
+# runs, so a long-running app never holds the lock. timeout runs uv with
+# --foreground so it stays in this process group: the launcher's Home key
+# then stops an install or upgrade too, instead of leaving it holding the lock.
 exec 9>"$STATE/$key.lock"
+if ! flock -n 9; then
+    printf 'Waiting for another install of %s to finish...\n' "$label" >&2
+fi
 flock -w 600 9 || die "Can't start $label: another install of it is still running."
 
 installed() {
@@ -104,7 +109,7 @@ if ! installed; then
         reinstall=
     fi
     # shellcheck disable=SC2086 # $reinstall is empty or one flag
-    if timeout -k 10 "$INSTALL_TIMEOUT" "$UV" tool install -q $reinstall "$spec" >&2; then
+    if timeout --foreground -k 10 "$INSTALL_TIMEOUT" "$UV" tool install -q $reinstall "$spec" >&2; then
         printf '%s\n' "$spec" >"$stamp"
     elif [ -f "$receipt" ]; then
         failed=1
@@ -114,7 +119,7 @@ if ! installed; then
     fi
 elif [ "$mode" != no-upgrade ]; then
     printf 'Checking for updates to %s...\n' "$label" >&2
-    if ! timeout -k 10 "$UPGRADE_TIMEOUT" "$UV" tool upgrade -q "$name" >&2; then
+    if ! timeout --foreground -k 10 "$UPGRADE_TIMEOUT" "$UV" tool upgrade -q "$name" >&2; then
         failed=1
         printf 'Could not check for updates (no internet?). Starting the version already on this machine.\n' >&2
     fi

@@ -14,6 +14,8 @@ ConditionUser=kiosk
 
 [Service]
 Type=simple
+# The watcher exits if its folder is missing, and nothing else creates it.
+ExecStartPre=/bin/mkdir -p %h/Downloads
 # Each start upgrades ibp-printing from GitHub first, then runs the
 # installed version even if that fails (ibp-kiosk-tool).
 ExecStart=/usr/local/bin/ibp-kiosk-tool ibp-printing ibp-label-watcher

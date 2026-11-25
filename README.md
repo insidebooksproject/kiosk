@@ -68,6 +68,11 @@ that boots it by accident never starts an install. The rest is unattended
   without touching anything unless there is exactly one. USB disks and
   removable cards don't count. It wipes that disk: GPT, EFI and one ext4
   root, no swap partition (zram instead).
+- When it refuses (no internal disk found, or more than one), it stays at
+  the partitioning step forever rather than show a dialog, because
+  continuing past a dialog would let the installer pick a disk itself.
+  Alt+F4 shows the reason; hold the power button to turn the machine off.
+  Unplug any other internal or card storage and start again.
 - Network: a plugged-in Ethernet cable wins; otherwise the build's Wi-Fi.
 - If it stops on a question (usually the network), answer it and it carries
   on. The log is `/var/log/installer/syslog` on the installed machine.
