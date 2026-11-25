@@ -134,7 +134,7 @@ class TileGrid(QWidget):
     def __init__(self, tiles: tuple[Tile, ...]) -> None:
         super().__init__()
         n = len(tiles)
-        self.columns = n if n <= 3 else 2 if n == 4 else 3
+        self.columns = max(1, n if n <= 3 else 2 if n == 4 else 3)
         layout = QGridLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(24)
@@ -273,7 +273,6 @@ class MainWindow(QWidget):
         self.monitor.result.connect(self.strip.set_result)
 
         shortcut = QShortcut(QKeySequence(ADMIN_KEY), self)
-        shortcut.setContext(Qt.ShortcutContext.ApplicationShortcut)
         shortcut.activated.connect(self.show_admin)
 
         self.show_home()
