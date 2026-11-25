@@ -61,8 +61,8 @@ exit status and its stderr/stdout are what the launcher shows on a failure.
 ```toml
 [station]
 name = "Shipping 1"          # optional; default is the hostname
-autostart = "portal"         # optional tile id: started at boot; when it
-                             # exits the launcher shows as usual
+autostart = "ship-individual"  # optional tile id: started at boot; when
+                             # it exits the launcher shows as usual
 
 [[tile]]
 id = "ship-individual"
@@ -82,7 +82,25 @@ command = ["ibp-kiosk-app", "wifi"]
 ```
 
 The launcher is generic: it knows nothing about Firefox, shippy or printers.
-It only runs these commands.
+It only runs these commands. Unknown keys are errors, and an `autostart` that
+names no tile is an error (the launcher shows a config-error screen).
+
+### Launcher behaviour the other parts rely on
+
+- **Home.** The launcher holds a lock on
+  `$XDG_RUNTIME_DIR/ibp-kiosk/launcher.pid`; `ibp-kiosk-launcher home` sends
+  that pid SIGUSR1 and exits 0 if there is no launcher. labwc binds Super
+  (either side, pressed alone) and F12 to it, so no app ever receives F12.
+- **Admin screen:** Ctrl+Alt+A, only when the tiles are showing. labwc must
+  not bind it.
+- **Failure screen:** shown when an app exits non-zero or within 3 seconds,
+  with its last 15 lines of output. `ibp-kiosk-app` must print a reason and
+  exit non-zero when it can't start something.
+- **Power commands** can be replaced with `IBP_KIOSK_POWEROFF` and
+  `IBP_KIOSK_REBOOT` (for tests and the VM).
+- Wayland app_id `ibp-kiosk-launcher`. labwc's config is in
+  `/etc/ibp-kiosk/labwc/`; the launcher is labwc's session client (`-S`), so
+  the session ends, and getty restarts it, if the launcher exits.
 
 ### `profile.conf`
 
@@ -90,6 +108,7 @@ Shell variables, sourced by `setup.sh` and `setup.d/*.sh`, installed as
 `/etc/ibp-kiosk/profile.conf`:
 
 ```sh
+KIOSK_PROFILE="shipping"     # the profile's name, so a rerun can find it
 KIOSK_FEATURES="shipping"    # space-separated, see below
 ```
 
@@ -105,8 +124,11 @@ Profiles: `shipping` (all five tiles), `intake` (IBP Requests, plus
 ### Variables `setup.sh` gives `setup.d/*.sh`
 
 `KIOSK_SRC` (this repo's files on the target), `KIOSK_SECRETS` (secrets
-directory, may be empty), `KIOSK_FEATURES`, and a function
-`has_feature NAME`. Steps must be safe to rerun.
+directory, may be empty), `KIOSK_PROFILE`, `KIOSK_FEATURES`, `KIOSK_LIVE`
+(1 on a running system, empty in the installer's chroot: only restart
+services when it is set), and a function `has_feature NAME`. Steps must be
+safe to rerun. `setup.sh [-p PROFILE] [SECRETS_DIR]`; without `-p` it reuses
+the installed profile.
 
 ### Secrets directory (written by `build.sh`, every file optional)
 
