@@ -30,7 +30,7 @@ It asks for anything required and unset:
 | Setting | |
 |---|---|
 | `KIOSK_PROFILE` | `shipping`, `intake` or `portal` |
-| `KIOSK_HOSTNAME` | the machine's name (lowercase, digits, dashes) |
+| `KIOSK_HOSTNAME` | the machine's name (lowercase, digits, dashes); by convention `ibp-` plus a Tolkien character, e.g. `ibp-pippin` |
 | `KIOSK_WIFI_SSID`, `KIOSK_WIFI_PSK` | Wi-Fi (WPA2 personal), used by the installer and the station. Empty SSID: no Wi-Fi, and the install needs an Ethernet cable |
 | `KIOSK_ADMIN_PASSWORD` | password for `ibp` (sudo, console) |
 | `KIOSK_SSH_KEYS` | `authorized_keys` for `ibp`; default `~/.ssh/id_ed25519.pub` |

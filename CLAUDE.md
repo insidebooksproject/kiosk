@@ -185,6 +185,12 @@ Known rough edges:
 
 ## Machines
 
+Host names are `ibp-<name>`, where the name is a Tolkien character (decided
+2026-11-25): short, easy to spell aloud, no villains (`ibp-frodo`,
+`ibp-pippin`, `ibp-merry`, `ibp-gimli`). The name belongs to the hardware and
+stays when the profile changes; the role volunteers see is `name` in
+`station.toml`. `ibp-april` was named before this.
+
 ### MacBook `ibp-april` (model A1278)
 
 Installer stick written 2026-11-24 (the 14.6 GB USB flash drive): profile
