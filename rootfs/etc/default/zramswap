@@ -1,0 +1,5 @@
+# Compressed swap in RAM instead of a swap partition. 100% of RAM is the
+# uncompressed size; zstd keeps the real use near a third. Matters on the
+# 2 GB Chromebook; harmless elsewhere.
+ALGO=zstd
+PERCENT=100
