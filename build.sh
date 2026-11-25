@@ -214,7 +214,7 @@ apikey = test
 apikey = test
 
 [googlemaps]
-apikey = test
+apikey = AIzaTESTTESTTESTTESTTESTTESTTESTTESTTES
 EOF
     done
     printf 'SHARE=//ibp-server.invalid/ibp-logs-test\nUSERNAME=test\nPASSWORD=test\n' \
