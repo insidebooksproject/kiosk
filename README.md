@@ -2,7 +2,7 @@
 
 One Debian 13 (trixie) image for every IBP volunteer machine. It boots
 straight into a full-screen launcher with a big tile per task (TDCJ Book
-Portal, IBP Requests, Ship Individual, Ship Bulk, Ship Manual) and nothing
+Portal, IBP Requests, IBP Packages, Ship Individual, Ship Bulk, Ship Manual) and nothing
 else: no desktop, no file manager, no settings. Background is in
 [`docs/design.md`](docs/design.md); the layout and the contracts between the
 parts are in [`CLAUDE.md`](CLAUDE.md).
@@ -137,7 +137,7 @@ Nvidia graphics, driven by nouveau), log in over SSH and add
 
 | Profile | Tiles | Features |
 |---|---|---|
-| `shipping` | Ship Individual, Ship Bulk, Ship Manual, TDCJ Book Portal, IBP Requests | `shipping`: shippy, shippy-gui, the PM-2411-BT label printer, log upload |
+| `shipping` | Ship Individual, Ship Bulk, Ship Manual, TDCJ Book Portal, IBP Requests, IBP Packages | `shipping`: shippy, shippy-gui, the PM-2411-BT label printer, log upload |
 | `intake` | IBP Requests | `package-printer`: CUPS and the DYMO print server |
 | `portal` | TDCJ Book Portal, opened at boot | `low-memory`: Firefox settings for the 2 GB Chromebook |
 

@@ -1,8 +1,8 @@
 # ibp-kiosk
 
 One Debian 13 image for every IBP volunteer machine. It boots into a
-full-screen launcher with one tile per task (TDCJ Book Portal, IBP Requests,
-Ship Individual, Ship Bulk, Ship Manual) and nothing else. Background and
+full-screen launcher with one tile per task (TDCJ Book Portal, IBP Requests, IBP
+Packages, Ship Individual, Ship Bulk, Ship Manual) and nothing else. Background and
 rollout are in `docs/design.md`; how to build, install and run it is in
 `README.md`. This file holds the layout and the contracts between the parts.
 It supersedes `ibp-book-portal-kiosk` (in `../ibp-book-portal-kiosk`), whose
@@ -47,6 +47,7 @@ installer this one grew from.
 | `ibp-kiosk-launcher home` | Tells the running launcher to close the current app and show the tiles. labwc binds the Super key to it |
 | `ibp-kiosk-app portal` | Firefox (an ordinary window with tabs, not kiosk mode; its close button returns to the tiles) on the TDCJ Book Portal, own profile |
 | `ibp-kiosk-app requests` | The same on the IBP frontend, own profile |
+| `ibp-kiosk-app packages` | The same on the IBP frontend's packages page (`/packages`), in the `requests` profile |
 | `ibp-kiosk-app ship-individual` / `ship-bulk` | shippy in a full-screen terminal |
 | `ibp-kiosk-app ship-manual` | shippy-gui |
 | `ibp-kiosk-app wifi` | `nmtui` in a terminal (admin screen) |
@@ -118,7 +119,7 @@ KIOSK_FEATURES="shipping"    # space-separated, see below
 | `package-printer` | CUPS and `ibp-print-server` (DYMO LabelWriter, `localhost:40121`) |
 | `low-memory` | Firefox low-memory prefs (2 GB Chromebook) |
 
-Profiles: `shipping` (all five tiles), `intake` (IBP Requests, plus
+Profiles: `shipping` (all six tiles), `intake` (IBP Requests, plus
 `package-printer`), `portal` (Book Portal only, `autostart`, `low-memory`).
 
 ### Variables `setup.sh` gives `setup.d/*.sh`

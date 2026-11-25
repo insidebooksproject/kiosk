@@ -6,6 +6,8 @@
 #
 #   portal           Firefox, TDCJ Book Portal, own profile
 #   requests         Firefox, IBP frontend, own profile
+#   packages         Firefox, the IBP frontend's packages page, the
+#                    requests profile
 #   ship-individual  shippy individual, full-screen terminal
 #   ship-bulk        shippy bulk, full-screen terminal
 #   ship-manual      shippy-gui
@@ -24,13 +26,16 @@ set -u
 CONF_DIR=${IBP_KIOSK_CONF_DIR:-/etc/ibp-kiosk}
 
 # The start pages. /etc/ibp-kiosk/apps.conf (optional, shell syntax) may set
-# PORTAL_URL and REQUESTS_URL, e.g. if the server's address changes.
+# PORTAL_URL, REQUESTS_URL and PACKAGES_URL, e.g. if the server's address
+# changes. PACKAGES_URL defaults to the packages page under REQUESTS_URL.
 PORTAL_URL=https://bookportal.tdcj.texas.gov/BookPortal/protected/dashboard.action
 REQUESTS_URL=http://192.168.1.156/
+PACKAGES_URL=
 if [ -r "$CONF_DIR/apps.conf" ]; then
     # shellcheck source=/dev/null
     . "$CONF_DIR/apps.conf"
 fi
+PACKAGES_URL=${PACKAGES_URL:-${REQUESTS_URL%/}/packages}
 
 SHIPPY_CONFIG=${IBP_KIOSK_SHIPPY_CONFIG:-$CONF_DIR/shippy.ini}
 SHIPPY_GUI_DIR=${IBP_KIOSK_SHIPPY_GUI_DIR:-$HOME/.config/shippy-gui}
@@ -50,7 +55,7 @@ die() {
 }
 
 usage() {
-    echo "usage: ibp-kiosk-app portal|requests|ship-individual|ship-bulk|ship-manual|wifi|print-diag" >&2
+    echo "usage: ibp-kiosk-app portal|requests|packages|ship-individual|ship-bulk|ship-manual|wifi|print-diag" >&2
     exit 2
 }
 
@@ -189,6 +194,10 @@ portal)
     ;;
 requests)
     firefox requests "$REQUESTS_URL"
+    ;;
+packages)
+    # The same site as requests, so the same profile (only one runs at a time).
+    firefox requests "$PACKAGES_URL"
     ;;
 ship-individual | ship-bulk)
     [ -r "$SHIPPY_CONFIG" ] || die "Shipping is not set up on this machine: $SHIPPY_CONFIG is missing or not readable. Ask an IBP admin."

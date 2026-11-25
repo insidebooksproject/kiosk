@@ -30,6 +30,12 @@ label = "IBP Requests"
 description = "Look up and enter book requests"
 command = ["ibp-kiosk-app", "requests"]
 
+[[tile]]
+id = "packages"
+label = "IBP Packages"
+description = "Scan a package label to open it"
+command = ["ibp-kiosk-app", "packages"]
+
 [[status]]
 label = "Network"
 command = ["ibp-kiosk-status", "network"]

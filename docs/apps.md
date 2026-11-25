@@ -35,6 +35,7 @@ the base system and the apps is in `CLAUDE.md`; the background is in
 |---|---|
 | `portal` | `firefox-esr --no-remote --profile ~/.local/share/ibp-kiosk/firefox/portal --name ibp-kiosk-portal https://bookportal.tdcj.texas.gov/BookPortal/protected/dashboard.action` |
 | `requests` | the same with profile `requests`, app_id `ibp-kiosk-requests`, on `http://192.168.1.156/` |
+| `packages` | the same as `requests` (same profile and app_id), on `http://192.168.1.156/packages` |
 | `ship-individual`, `ship-bulk` | `foot --fullscreen` running `shippy --config /etc/ibp-kiosk/shippy.ini individual` / `bulk` |
 | `ship-manual` | `shippy-gui`, from `/home/kiosk/.config/shippy-gui` (it reads `config.ini` from its working directory) |
 | `wifi` | `foot --fullscreen` running `nmtui` |
@@ -49,9 +50,10 @@ It checks, before starting anything: the shippy config (ship tiles),
 shippy-gui's `config.ini` (Ship Manual), `firefox-esr`, `foot`, `nmtui` and
 `/usr/local/bin/uv`.
 
-The two start pages can be changed without editing the script: an optional
+The start pages can be changed without editing the script: an optional
 `/etc/ibp-kiosk/apps.conf` (shell syntax, not installed by default) may set
-`PORTAL_URL`, `REQUESTS_URL` and, for `ibp-kiosk-status server`,
+`PORTAL_URL`, `REQUESTS_URL`, `PACKAGES_URL` (default: `/packages` under
+`REQUESTS_URL`) and, for `ibp-kiosk-status server`,
 `IBP_SERVER_URL` (default `http://192.168.1.156`).
 
 ### Browser tiles
