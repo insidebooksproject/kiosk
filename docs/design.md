@@ -72,8 +72,8 @@ Use **labwc** rather than cage. The kiosk uses cage, which is enough for one
 app that never closes, but a multi-app station needs two things cage doesn't
 have:
 
-- **A Home key.** Firefox in kiosk mode and a full-screen terminal have no
-  close button. labwc can bind a key (Super, with a sticker on it) to a
+- **A Home key.** A full-screen terminal has no close button (Firefox has
+  its own since 2026-11-25, when it stopped using kiosk mode). labwc can bind a key (Super, with a sticker on it) to a
   command that closes the running app and returns to the launcher.
 - **Ordinary dialog handling.** shippy-gui opens a settings dialog and message
   boxes. labwc is a normal stacking compositor; window rules keep main
@@ -104,7 +104,9 @@ last lines of its output instead of silently returning to the tiles.
 - **Firefox** is `firefox-esr` with the kiosk's policy setup
   (`policies.json`: force-installed extension, lockdown, no saved passwords,
   DoH off so `ibp-server.local` resolves). Each browser tile uses its own
-  profile and `--kiosk <url>`. The Book Portal login goes through ID.me, so
+  profile and opens its page in an ordinary Firefox window (tabs, address
+  bar, a close button), not `--kiosk`: volunteers close it like any browser
+  and can open other tabs. The Book Portal login goes through ID.me, so
   any site allow-list must include it.
 - **shippy** runs as today, with uvx from the `deploy` branch:
   `uvx --from git+https://github.com/jonkensta/shippy.git@deploy shippy --config /etc/ibp-kiosk/shippy.ini bulk|individual`,

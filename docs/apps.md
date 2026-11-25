@@ -15,6 +15,7 @@ the base system and the apps is in `CLAUDE.md`; the background is in
 | `rootfs/usr/local/bin/ibp-kiosk-log-upload` | Copies the label-printer logs to the Samba share |
 | `rootfs/usr/share/firefox-esr/distribution/policies.json` | Firefox policies (both browser tiles) |
 | `rootfs/etc/firefox-esr/ibp-kiosk.js` | Firefox prefs (both browser tiles) |
+| `rootfs/etc/gtk-3.0/settings.ini` | Firefox's window buttons: close only |
 | `rootfs/usr/local/share/ibp-kiosk/firefox/ibp-kiosk-low-memory.js` | Low-memory prefs, copied to `/etc/firefox-esr/` with feature `low-memory` |
 | `rootfs/etc/ibp-kiosk/foot.ini` | The terminal's config |
 | `rootfs/etc/uv/uv.toml` | uv: Debian's Python only, never download one |
@@ -32,7 +33,7 @@ the base system and the apps is in `CLAUDE.md`; the background is in
 
 | `ibp-kiosk-app` | Runs |
 |---|---|
-| `portal` | `firefox-esr --kiosk --no-remote --profile ~/.local/share/ibp-kiosk/firefox/portal --name ibp-kiosk-portal https://bookportal.tdcj.texas.gov/BookPortal/protected/dashboard.action` |
+| `portal` | `firefox-esr --no-remote --profile ~/.local/share/ibp-kiosk/firefox/portal --name ibp-kiosk-portal https://bookportal.tdcj.texas.gov/BookPortal/protected/dashboard.action` |
 | `requests` | the same with profile `requests`, app_id `ibp-kiosk-requests`, on `http://192.168.1.156/` |
 | `ship-individual`, `ship-bulk` | `foot --fullscreen` running `shippy --config /etc/ibp-kiosk/shippy.ini individual` / `bulk` |
 | `ship-manual` | `shippy-gui`, from `/home/kiosk/.config/shippy-gui` (it reads `config.ini` from its working directory) |

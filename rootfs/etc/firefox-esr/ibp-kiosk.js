@@ -29,3 +29,11 @@ pref("browser.tabs.warnOnClose", false, locked);
 pref("browser.aboutwelcome.enabled", false, locked);
 pref("datareporting.policy.firstRunURL", "", locked);
 pref("browser.shell.checkDefaultBrowser", false, locked);
+
+// Firefox runs as an ordinary browser window (tabs, address bar), not in
+// kiosk mode. labwc gives main windows no title bar, so Firefox draws its
+// own window buttons in the tab bar: the close button there is how a
+// volunteer gets back to the tiles.
+pref("browser.tabs.inTitlebar", 1, locked);
+// No "Open previous tabs?" bar: a negative count means it was already shown.
+pref("browser.startup.couldRestoreSession.count", -1, locked);
