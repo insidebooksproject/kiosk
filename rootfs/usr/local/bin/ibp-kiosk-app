@@ -119,8 +119,10 @@ EOF
 
 # --------------------------------------------------------------- terminal
 
-# Run "ibp-kiosk-app --in-terminal NAME" in a full-screen foot window. foot
-# exits when that command does. foot's own warnings are turned off: the
+# Run "ibp-kiosk-app --in-terminal NAME" in a maximized foot window. labwc
+# gives it a title bar showing TITLE (so the screen says which mode this is)
+# and a close button; see the window rules in labwc's rc.xml. foot exits
+# when that command does. foot's own warnings are turned off: the
 # launcher's failure screen shows this command's output, and a foot warning
 # there reads as the reason an app stopped.
 terminal() {
@@ -128,11 +130,11 @@ terminal() {
     need foot "The terminal (foot) is not installed on this machine. Ask an IBP admin."
     if [ -r "$FOOT_CONFIG" ]; then
         run foot --log-level=error --config="$FOOT_CONFIG" \
-            --app-id="ibp-kiosk-$name" --title="$title" --fullscreen \
+            --app-id="ibp-kiosk-$name" --title="$title" --maximized \
             -- "$self" --in-terminal "$name"
     fi
     run foot --log-level=error --app-id="ibp-kiosk-$name" --title="$title" \
-        --fullscreen -- "$self" --in-terminal "$name"
+        --maximized -- "$self" --in-terminal "$name"
 }
 
 # Show MESSAGE and wait for one key. Keys typed earlier (a scanner's Enter,
@@ -163,6 +165,9 @@ in_terminal() {
     # Ctrl+C reaches the app, not this shell (a handler, unlike an ignored
     # signal, is not inherited), so the pause still runs.
     trap : INT
+    # The title bar's close button: foot hangs up on us and the app. That
+    # is the volunteer leaving, like the Home key, not a failure.
+    trap 'exit 0' HUP
     case $1 in
     ship-individual | ship-bulk)
         mode=${1#ship-}
@@ -226,7 +231,9 @@ ship-manual)
     cd "$SHIPPY_GUI_DIR" || die "Can't open $SHIPPY_GUI_DIR."
     # Native Wayland under labwc; XWayland only if that fails.
     export QT_QPA_PLATFORM="${QT_QPA_PLATFORM:-wayland;xcb}"
-    run "$TOOL" shippy-gui shippy-gui
+    # Qt's own option: the title labwc shows in the window's title bar,
+    # in place of shippy-gui's "Shippy GUI - IBP Shipping Label Generator".
+    run "$TOOL" shippy-gui shippy-gui -qwindowtitle "Ship Manual"
     ;;
 wifi)
     need nmtui "nmtui is not installed on this machine. Ask an IBP admin."
