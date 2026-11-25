@@ -25,7 +25,7 @@
 #
 # KIOSK_TEST=1 builds a test ISO with no real secrets: admin password
 # "testpw", no Wi-Fi, placeholder app configs and log share, profile
-# "shipping" and hostname "ibp-kiosk-test" unless set. SSH keys are used if
+# "shipping" and hostname "test-station" unless set. SSH keys are used if
 # found. Never put a test ISO on a real machine.
 set -euo pipefail
 
@@ -66,7 +66,7 @@ no_newlines() {  # no_newlines VALUE...: reject values that would break a file
 }
 
 if [ "$test_mode" = 1 ]; then
-    : "${KIOSK_PROFILE:=shipping}" "${KIOSK_HOSTNAME:=ibp-kiosk-test}"
+    : "${KIOSK_PROFILE:=shipping}" "${KIOSK_HOSTNAME:=test-station}"
     : "${KIOSK_ADMIN_PASSWORD:=testpw}"
     KIOSK_WIFI_SSID=${KIOSK_WIFI_SSID:-}
     KIOSK_TAILSCALE_AUTHKEY=""
