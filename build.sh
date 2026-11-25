@@ -21,6 +21,9 @@
 #                                    (default ~/.ssh/id_ed25519.pub)
 #   KIOSK_TAILSCALE_AUTHKEY          optional one-time key; joins the tailnet on
 #                                    first boot as KIOSK_HOSTNAME
+#   KIOSK_UPDATE_BRANCH              optional: the branch the station updates
+#                                    itself from at boot (default deploy;
+#                                    empty turns updates off)
 # Shipping profile only (each asked for; an empty answer leaves it out):
 #   KIOSK_SHIPPY_CONFIG              shippy's config.ini
 #   KIOSK_SHIPPY_GUI_CONFIG          shippy-gui's config.ini
@@ -29,7 +32,8 @@
 #
 # KIOSK_TEST=1 builds a test ISO with no real secrets: admin password
 # "testpw", no Wi-Fi, placeholder app configs and log share, profile
-# "shipping" and hostname "test-station" unless set. SSH keys are used if
+# "shipping" and hostname "test-station" unless set, no updates at boot
+# unless KIOSK_UPDATE_BRANCH is set. SSH keys are used if
 # found. Never put a test ISO on a real machine. KIOSK_TEST_BROADCOM_STA=1
 # makes the install build the Broadcom "wl" Wi-Fi driver without the hardware.
 set -euo pipefail
@@ -219,6 +223,14 @@ EOF
 [ "${KIOSK_TEST_BROADCOM_STA:-}" != 1 ] || : >"$secrets/force-broadcom-sta"
 [ -z "$KIOSK_TAILSCALE_AUTHKEY" ] ||
     printf '%s\n' "$KIOSK_TAILSCALE_AUTHKEY" >"$secrets/tailscale-authkey"
+# Which branch the station updates itself from at boot (ibp-kiosk-update).
+# Without update.conf it follows `deploy`; a test ISO follows nothing unless
+# told to, so a VM keeps the code it was built from.
+if [ -n "${KIOSK_UPDATE_BRANCH+set}" ]; then
+    printf 'UPDATE_BRANCH=%s\n' "$KIOSK_UPDATE_BRANCH" >"$secrets/update.conf"
+elif [ "$test_mode" = 1 ]; then
+    printf 'UPDATE_BRANCH=\n' >"$secrets/update.conf"
+fi
 
 if [ -n "$shipping" ] && [ "$test_mode" = 1 ]; then
     for name in shippy shippy-gui; do

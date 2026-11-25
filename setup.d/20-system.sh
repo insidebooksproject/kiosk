@@ -3,4 +3,5 @@
 update-grub
 systemctl set-default multi-user.target
 systemctl enable NetworkManager avahi-daemon ssh tailscaled zramswap \
-    unattended-upgrades systemd-timesyncd ibp-kiosk-tailscale-up.service
+    unattended-upgrades systemd-timesyncd ibp-kiosk-tailscale-up.service \
+    ibp-kiosk-update.service

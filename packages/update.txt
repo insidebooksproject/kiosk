@@ -1,0 +1,3 @@
+# ibp-kiosk-update fetches the release branch with git over HTTPS
+git
+ca-certificates

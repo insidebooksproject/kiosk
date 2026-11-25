@@ -11,6 +11,7 @@
 #                     usable (from sysfs only: the printer allows one open at a
 #                     time and shippy may be printing, so it is never opened)
 #   printer-package   the print server on localhost:40121 sees a label printer
+#   update            what ibp-kiosk-update last did (its status file)
 #
 # For testing: IBP_SERVER_URL, IBP_KIOSK_PRINT_SERVER_URL, IBP_KIOSK_SYS and
 # IBP_KIOSK_DEV override the server, print server, /sys and /dev.
@@ -152,13 +153,24 @@ check_printer_package() {
     esac
 }
 
+check_update() {
+    file=${IBP_KIOSK_UPDATE_STATE:-/var/lib/ibp-kiosk/update}/status
+    [ -r "$file" ] || say "Not checked yet" 0
+    read -r state text <"$file" || say "Not checked yet" 0
+    case $state in
+    failed) say "${text:-Update failed}" 1 ;;
+    *) say "${text:-OK}" 0 ;;
+    esac
+}
+
 case ${1:-} in
 network) check_network ;;
 server) check_server ;;
 printer-shipping) check_printer_shipping ;;
 printer-package) check_printer_package ;;
+update) check_update ;;
 *)
-    echo "usage: ibp-kiosk-status network|server|printer-shipping|printer-package" >&2
+    echo "usage: ibp-kiosk-status network|server|printer-shipping|printer-package|update" >&2
     exit 2
     ;;
 esac

@@ -93,7 +93,9 @@ apt-get install -y --no-install-recommends $packages tailscale
 # build.sh stages everything owner-only: directories 0755, files 0644,
 # usr/local/bin 0755. A file that needs another mode or owner gets it in the
 # setup.d step that owns it.
-cp -r --no-preserve=mode,ownership "$KIOSK_SRC/rootfs/." /
+# --remove-destination: a script that is running (ibp-kiosk-update runs this
+# on a live station) keeps its old file rather than have it change under it.
+cp -r --remove-destination --no-preserve=mode,ownership "$KIOSK_SRC/rootfs/." /
 (cd "$KIOSK_SRC/rootfs" && find . -mindepth 1 -type d) | while read -r d; do
     chmod 755 "/${d#./}"
 done

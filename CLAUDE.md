@@ -28,7 +28,8 @@ installer this one grew from.
 
 - Config directory `/etc/ibp-kiosk/`: `station.toml`, `profile.conf`,
   `shippy.ini` (root:kiosk 0640), `log-upload.conf` (root 0600),
-  `tailscale-authkey` (root 0600, deleted after use).
+  `tailscale-authkey` (root 0600, deleted after use), `update.conf`
+  (optional: `UPDATE_BRANCH`, `UPDATE_URL`).
 - shippy-gui reads and writes `config.ini` in its working directory:
   `/home/kiosk/.config/shippy-gui/config.ini` (kiosk 0600).
 - Launcher code: `launcher/ibp_kiosk/` is copied to
@@ -52,7 +53,8 @@ installer this one grew from.
 | `ibp-kiosk-app ship-manual` | shippy-gui, with the same title bar ("Ship Manual") |
 | `ibp-kiosk-app wifi` | `nmtui` in a terminal (admin screen) |
 | `ibp-kiosk-app print-diag` | `ibp-print-diag` in a terminal that stays open until a key is pressed (admin screen) |
-| `ibp-kiosk-status network\|server\|printer-shipping\|printer-package` | One status check: exit 0 = fine, non-zero = problem; first line of stdout is a short text for the volunteer |
+| `ibp-kiosk-update` | Run as root by `ibp-kiosk-update.service` at boot: when the `deploy` branch of this repo has moved, clones it and runs its `setup.sh`; state in `/var/lib/ibp-kiosk/update` (`commit`, `src`, `status`) |
+| `ibp-kiosk-status network\|server\|printer-shipping\|printer-package\|update` | One status check: exit 0 = fine, non-zero = problem; first line of stdout is a short text for the volunteer |
 
 `ibp-kiosk-app` runs in the foreground and exits when the app closes; its
 exit status and its stderr/stdout are what the launcher shows on a failure.
@@ -133,15 +135,30 @@ the installed profile.
 
 ### Secrets directory (written by `build.sh`, every file optional)
 
-`authorized_keys`, `wifi/*.nmconnection`, `tailscale-authkey`, `shippy.ini`,
+`authorized_keys`, `wifi/*.nmconnection`, `tailscale-authkey`, `update.conf`
+(`UPDATE_BRANCH=`; not a secret, it rides along), `shippy.ini`,
 `shippy-gui.ini`, `log-upload.conf` (`SHARE=//host/share`, `USERNAME=`,
 `PASSWORD=`).
 
 `build.sh` settings (environment, asked for when required and unset):
 `KIOSK_PROFILE`, `KIOSK_HOSTNAME`, `KIOSK_WIFI_SSID`, `KIOSK_WIFI_PSK`,
 `KIOSK_ADMIN_PASSWORD`, `KIOSK_SSH_KEYS`, `KIOSK_TAILSCALE_AUTHKEY`,
+`KIOSK_UPDATE_BRANCH` (never asked for; default `deploy`, off in test builds),
 `KIOSK_SHIPPY_CONFIG`, `KIOSK_SHIPPY_GUI_CONFIG`, `KIOSK_LOG_SHARE`,
 `KIOSK_LOG_USER`, `KIOSK_LOG_PASSWORD`.
+
+## Releasing
+
+The repo is public (since 2026-11-25) so stations can fetch it without a
+credential: nothing secret goes in it, in any commit. Every station that
+follows `deploy` (the default) runs that branch's `setup.sh` as root at its
+next boot, so a broken `deploy` breaks every station. Release like the apps:
+merge into `main`, try it in the VM (`UPDATE_URL` in the VM's
+`/etc/ibp-kiosk/update.conf` can point at a local clone), then fast-forward
+`deploy` to `main`. `setup.sh` and every `setup.d` step must stay safe to
+rerun on a live station with no secrets directory, and must not restart the
+session. A failed run keeps the old commit recorded and is retried at the
+next boot.
 
 ## Rules
 
