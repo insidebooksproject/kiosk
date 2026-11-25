@@ -1,0 +1,10 @@
+#!/bin/sh
+# Run the labwc Wayland compositor with the launcher as its session client.
+# Started from the kiosk user's login on tty1 (~/.bash_profile). labwc reads
+# only /etc/ibp-kiosk/labwc (-C): rc.xml, environment, autostart. -S starts
+# the launcher and stops labwc when the launcher exits; then this login ends
+# and getty starts a fresh one, which is the watchdog.
+# Logs (labwc, the launcher and the apps): journalctl -t ibp-kiosk
+systemd-cat -t ibp-kiosk labwc -C /etc/ibp-kiosk/labwc -S /usr/local/bin/ibp-kiosk-launcher
+# Don't spin if labwc or the launcher fails right away.
+sleep 3
