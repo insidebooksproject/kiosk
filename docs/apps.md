@@ -180,9 +180,9 @@ to the tiles (window rules in `rc.xml`; colours and the button size in
 `themerc-override`; the button's picture in
 `/usr/share/themes/IBP-Kiosk/labwc`). Inside, shippy
 runs through `ibp-kiosk-tool` (so the update check is visible on screen). The
-terminal closes when shippy exits 0 or 130 (130 is an unhandled Ctrl+C;
-shippy's own "Press Ctrl+C to quit" at the no-printer prompt exits 1 today,
-so it gets the message below). After any other non-zero exit the screen says
+terminal closes when shippy exits 0 or 130 (130 is the volunteer quitting:
+shippy's "Press Ctrl+C to quit" at the no-printer prompt since shippy
+cdfc8f7, or an unhandled Ctrl+C). After any other non-zero exit the screen says
 "shippy stopped (exit status N). Read the message above, then press any key
 to close." Keys typed before that message (a scanner's Enter) are discarded
 first, and the status goes to the journal (`ibp-kiosk-app`). Either way the
