@@ -196,7 +196,20 @@ Bitwarden `Home WIFI 2.4G`) and `ibp-site-wifi` (Bitwarden `IBP WIFI`); the
 **placeholder** configs (no real API keys): the shipping tiles open but
 can't look up requests or buy postage. No Tailscale key, no log share.
 
-Not installed yet (2026-11-24). The first attempts stopped at the
+**Next step: fit the replacement hard-drive flex cable (`821-1480-A`, on
+order), reinstall from the stick with no extra boot options, then check it
+over SSH (`ibp@ibp-april.local`).**
+
+2026-11-24: one install went through after the cable was reseated, and the
+machine boots into the launcher (so the installer, boot, Intel graphics and
+labwc work on it). That install is not trustworthy: the launcher's Network
+check says "could not run", sshd resets every connection before its banner,
+and Ctrl+Option+(fn)+F2 did not reach a console. Files damaged by the bad
+link during the install is the likely cause but was never confirmed (no
+shell access). Console switching works in the VM. Don't debug this install;
+reinstall after the cable.
+
+The first attempts stopped at the
 partitioner because the internal SSD (Patriot P210 128GB) was not usable:
 link CRC errors at 6 Gbps and no IDENTIFY at lower speeds, which came and
 went with reseating the hard-drive flex cable and with the bottom cover on
