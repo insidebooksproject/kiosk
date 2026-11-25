@@ -39,7 +39,7 @@ STATE=${XDG_STATE_HOME:-$HOME/.local/state}/ibp-kiosk/tools
 UPGRADE_TIMEOUT=${IBP_KIOSK_UPGRADE_TIMEOUT:-90}
 INSTALL_TIMEOUT=${IBP_KIOSK_INSTALL_TIMEOUT:-900}
 
-GITHUB=https://github.com/jonkensta
+GITHUB=https://github.com/insidebooksproject
 
 die() {
     printf '%s\n' "$*" >&2
@@ -65,10 +65,10 @@ shippy-gui)
     spec="shippy-gui @ git+$GITHUB/shippy-gui.git@deploy" ;;
 ibp-printing)
     name=ibp-printing label="the label printer tools (ibp-printing)"
-    spec="ibp-printing[watcher] @ git+$GITHUB/ibp-printing.git@deploy" ;;
+    spec="ibp-printing[watcher] @ git+$GITHUB/printing.git@deploy" ;;
 ibp-printing-server)
     name=ibp-printing label="the print server (ibp-printing)"
-    spec="ibp-printing[linux] @ git+$GITHUB/ibp-printing.git@deploy" ;;
+    spec="ibp-printing[linux] @ git+$GITHUB/printing.git@deploy" ;;
 *)
     die "ibp-kiosk-tool: unknown tool '$key'" ;;
 esac

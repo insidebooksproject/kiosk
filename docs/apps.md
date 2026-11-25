@@ -118,9 +118,9 @@ ibp-kiosk-tool [--no-upgrade | --install-only] TOOL [COMMAND [ARG...]]
 
 | TOOL | SPEC | Used by |
 |---|---|---|
-| `shippy` | `shippy @ git+https://github.com/jonkensta/shippy.git@deploy` | Ship Individual, Ship Bulk |
-| `shippy-gui` | `shippy-gui @ git+https://github.com/jonkensta/shippy-gui.git@deploy` | Ship Manual |
-| `ibp-printing` | `ibp-printing[watcher] @ git+https://github.com/jonkensta/ibp-printing.git@deploy` | label watcher, Printer check (`--no-upgrade`) |
+| `shippy` | `shippy @ git+https://github.com/insidebooksproject/shippy.git@deploy` | Ship Individual, Ship Bulk |
+| `shippy-gui` | `shippy-gui @ git+https://github.com/insidebooksproject/shippy-gui.git@deploy` | Ship Manual |
+| `ibp-printing` | `ibp-printing[watcher] @ git+https://github.com/insidebooksproject/printing.git@deploy` | label watcher, Printer check (`--no-upgrade`) |
 | `ibp-printing-server` | `ibp-printing[linux] @ ...@deploy` | the print server (user `ibp-kiosk-print`) |
 
 Releasing stays as it is: fast-forward `deploy`; stations pick it up at the
@@ -138,7 +138,7 @@ no window showing).
 
 | Command | Result |
 |---|---|
-| `uvx --from git+https://github.com/jonkensta/shippy.git@deploy shippy --help`, cold cache | works, 3.4 s |
+| `uvx --from git+https://github.com/insidebooksproject/shippy.git@deploy shippy --help`, cold cache | works, 3.4 s |
 | same, warm cache | works, 0.7 s (still fetches the branch) |
 | same with `--offline`, warm cache, network up | fails at once: "failed to fetch branch or tag `deploy`: Remote Git fetches are not allowed because network connectivity is disabled (i.e., with `--offline`)" |
 | `uvx --offline --from git+...shippy.git@<commit sha>`, warm cache for that sha | fails the same way, on shippy's own dependency `ibp-printing @ git+...@v0.4.0`: uv must fetch a tag too |
