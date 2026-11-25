@@ -12,7 +12,7 @@ from collections.abc import Callable
 from pathlib import Path
 
 from PySide6.QtCore import QObject, Qt, QTimer, Signal
-from PySide6.QtGui import QCloseEvent, QKeyEvent, QKeySequence, QShortcut
+from PySide6.QtGui import QCloseEvent, QKeyEvent, QKeySequence, QShortcut, QTextDocument
 from PySide6.QtNetwork import QAbstractSocket, QNetworkInterface
 from PySide6.QtWidgets import (
     QFrame,
@@ -35,6 +35,7 @@ from .status import CheckResult, StatusMonitor
 log = logging.getLogger(__name__)
 
 ADMIN_KEY = "Ctrl+Alt+A"
+CHIP_PADDING = 40  # a status chip's padding and border, both sides
 RUNNING_AFTER_MS = 2000  # "Starting X..." becomes "X is running" after this
 POWER_COMMANDS = {
     "poweroff": ("IBP_KIOSK_POWEROFF", ["systemctl", "poweroff"]),
@@ -188,8 +189,10 @@ class StatusStrip(QFrame):
             chip = QLabel()
             chip.setObjectName("chip")
             self.labels.append(check.label)
-            # Chips share the width and wrap their text, so a long message
-            # can never make the window wider than the screen.
+            # Chips share the width in proportion to their text (_show), so
+            # each fits on one line when the strip has room. They wrap only
+            # when it doesn't, so a long message can never make the window
+            # wider than the screen.
             chip.setWordWrap(True)
             chip.setMinimumWidth(120)
             self.chips.append(chip)
@@ -208,6 +211,11 @@ class StatusStrip(QFrame):
     def _show(self, index: int, symbol: str, text: str, ok: bool | None) -> None:
         chip = self.chips[index]
         chip.setText(f"{symbol} <b>{_html(self.labels[index])}:</b> {_html(text)}")
+        chip.ensurePolished()  # the stylesheet's font
+        doc = QTextDocument()
+        doc.setDefaultFont(chip.font())
+        doc.setHtml(chip.text())
+        self.layout().setStretch(index, round(doc.idealWidth()) + CHIP_PADDING)
         chip.setProperty("state", "bad" if ok is False else "good")
         chip.style().unpolish(chip)
         chip.style().polish(chip)

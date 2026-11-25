@@ -24,7 +24,7 @@ TILES = (
 CONFIG = Config(
     name="Test station",
     tiles=TILES,
-    statuses=(StatusCheck("Network", ("true",)),),
+    statuses=(StatusCheck("Network", ("true",)), StatusCheck("Label printer", ("true",))),
     admin=(Tile("adm", "Admin thing", ("sleep", "30")),),
 )
 
@@ -134,6 +134,19 @@ def test_status_strip(window: MainWindow) -> None:
     window.strip.set_result(0, CheckResult(False, "No Wi-Fi"))
     assert "✗" in chip.text() and "No Wi-Fi" in chip.text()
     assert chip.property("state") == "bad"
+
+
+def test_status_chips_fit_on_one_line(window: MainWindow,
+                                      wait_until: Callable[..., None]) -> None:
+    window.strip.set_result(0, CheckResult(True, "Cable"))
+    window.strip.set_result(1, CheckResult(False, "Plugged in, but not detected (try replugging it)"))
+    wait_until(lambda: window.strip.chips[0].width() < window.strip.chips[1].width())
+    one_line = window.strip.chips[0].height()
+    assert window.strip.chips[1].height() == one_line
+    # Too long for the strip: it wraps instead of widening the window.
+    window.strip.set_result(1, CheckResult(False, "word " * 80))
+    wait_until(lambda: window.strip.chips[1].height() > one_line)
+    assert window.width() == 1366
 
 
 def test_power_confirm_and_cancel(window: MainWindow, monkeypatch: pytest.MonkeyPatch) -> None:

@@ -222,14 +222,16 @@ station without feature `shipping` the tool installs itself on first use.
 
 ## Status checks (`ibp-kiosk-status`)
 
-Every external call has a timeout; the slowest case is about 6 s.
+Every external call has a timeout; the slowest case is about 6 s. The
+launcher shows each text after the check's label, on one line ("IBP server:
+Not reachable"), so the texts don't repeat the label.
 
 | Check | How | Texts |
 |---|---|---|
-| `network` | `nmcli -t -f TYPE,STATE device`, the SSID from `nmcli device wifi list --rescan no`, `nmcli networking connectivity` | "Connected to Wi-Fi Vesper", "Connected to network cable", "Connected to Wi-Fi Vesper, but no internet" (connectivity none/limited/portal), "No network" |
-| `server` | `GET http://192.168.1.156/api/health` (3 s connect, 4 s total) | "IBP server OK", "IBP server not reachable", "IBP server database problem" (503), "IBP server error (N)" |
-| `printer-shipping` | sysfs only: each `/sys/class/usbmisc/lp*` whose `device/ieee1284_id` has `MDL:PM2411BT` (or `MODEL:`, any case) or whose USB device is `2e3c:5760`; then whether `/dev/usb/lpN` exists and is read-write for the caller (`access()`, no open). Falls back to `/sys/bus/usb/devices` for a printer not bound to usblp | "Label printer ready (BOB)" / "(BETTY)" by serial, "Label printer plugged in, but not allowed (udev rule missing?)", "Label printer plugged in, but not detected (try replugging it)", "No label printer plugged in" |
-| `printer-package` | `GET http://localhost:40121/health` (the print server's own discovery: a usable label printer queue) | "Label printer ready", "No label printer plugged in", "Label printer problem (see the print server log)", "Label print server not running" |
+| `network` | `nmcli -t -f TYPE,STATE device`, the SSID from `nmcli device wifi list --rescan no`, `nmcli networking connectivity` | "Wi-Fi Vesper", "Cable", "Wi-Fi Vesper, but no internet" (connectivity none/limited/portal), "Not connected" |
+| `server` | `GET http://192.168.1.156/api/health` (3 s connect, 4 s total) | "OK", "Not reachable", "Database problem" (503), "Error (N)" |
+| `printer-shipping` | sysfs only: each `/sys/class/usbmisc/lp*` whose `device/ieee1284_id` has `MDL:PM2411BT` (or `MODEL:`, any case) or whose USB device is `2e3c:5760`; then whether `/dev/usb/lpN` exists and is read-write for the caller (`access()`, no open). Falls back to `/sys/bus/usb/devices` for a printer not bound to usblp | "Ready (BOB)" / "(BETTY)" by serial, "Plugged in, but not allowed (udev rule missing?)", "Plugged in, but not detected (try replugging it)", "Not plugged in" |
+| `printer-package` | `GET http://localhost:40121/health` (the print server's own discovery: a usable label printer queue) | "Ready", "Not plugged in", "Problem (see the print server log)", "Print server not running" |
 
 `printer-shipping` never opens the device: usblp allows one open, and
 shippy or the watcher may be printing. Reading `ieee1284_id` returns the ID
@@ -347,7 +349,7 @@ without and with a print:
 
 ```sh
 curl -s localhost:40121/health        # "count": 1
-ibp-kiosk-status printer-package      # Label printer ready
+ibp-kiosk-status printer-package      # Ready
 sudo -u ibp-kiosk-print -H /var/lib/ibp-kiosk-print/.local/bin/ibp-print-server list
 sudo -u ibp-kiosk-print -H /var/lib/ibp-kiosk-print/.local/bin/ibp-print-server test   # prints a test label
 ```
