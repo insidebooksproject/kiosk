@@ -94,7 +94,7 @@ def test_enter_starts_focused_tile(window: MainWindow, wait_until: Callable[...,
     wait_until(lambda: window.page is window.failure_page)
     assert window.failure_title.text() == "Broken"
     assert "didn't start" in window.failure_sentence.text()
-    assert window.failure_tail.text() == "oh no"
+    assert window.failure_tail.toPlainText() == "oh no"
     assert window.failure_detail.text() == "Exit code 4."
     assert window.failure_back.hasFocus()
     key(window, Qt.Key.Key_Return)
@@ -141,6 +141,7 @@ def test_power_confirm_and_cancel(window: MainWindow, monkeypatch: pytest.Monkey
     window.shutdown_button.click()
     assert window.page is window.confirm_page
     assert window.confirm_no.hasFocus()  # the safe choice is the default
+    assert not window.shutdown_button.isVisible()
     key(window, Qt.Key.Key_Escape)
     assert window.page is window.tiles_page
     window.shutdown_button.click()
@@ -157,7 +158,7 @@ def test_power_failure_is_shown(window: MainWindow, monkeypatch: pytest.MonkeyPa
     window.confirm_yes.click()
     wait_until(lambda: window.page is window.failure_page)
     assert window.failure_title.text() == "Restart"
-    assert "Access denied" in window.failure_tail.text()
+    assert "Access denied" in window.failure_tail.toPlainText()
 
 
 def test_power_command_defaults(monkeypatch: pytest.MonkeyPatch) -> None:

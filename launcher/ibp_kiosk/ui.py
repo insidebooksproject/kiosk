@@ -19,6 +19,7 @@ from PySide6.QtWidgets import (
     QGridLayout,
     QHBoxLayout,
     QLabel,
+    QPlainTextEdit,
     QPushButton,
     QSizePolicy,
     QStackedWidget,
@@ -48,9 +49,9 @@ QLabel#heading { font-size: 40px; font-weight: bold; }
 QLabel#sentence { font-size: 28px; }
 QLabel#small { font-size: 20px; }
 QLabel#info { font-size: 22px; }
-QLabel#tail {
+QPlainTextEdit#tail {
     font-family: "DejaVu Sans Mono", monospace; font-size: 16px;
-    color: #111111; background: #ffffff; padding: 12px; border-radius: 6px;
+    color: #111111; background: #ffffff; padding: 8px; border-radius: 6px;
 }
 QPushButton {
     font-size: 24px; color: #111111; background: #e6e6e6;
@@ -66,7 +67,7 @@ QPushButton#tile:focus { border: 8px solid #ffc300; }
 QPushButton#tile QLabel { color: #111111; }
 QLabel#tileLabel { font-size: 34px; font-weight: bold; }
 QLabel#tileDescription { font-size: 21px; }
-QLabel#tileNumber { font-size: 18px; color: #444444; }
+QLabel#tileNumber { font-size: 22px; color: #444444; }
 QFrame#strip { background: #0b1427; }
 QLabel#chip {
     font-size: 20px; color: #111111; background: #ffffff;
@@ -140,7 +141,7 @@ class TileGrid(QWidget):
         layout.setSpacing(24)
         self.buttons: list[TileButton] = []
         for i, tile in enumerate(tiles):
-            button = TileButton(tile, i + 1 if i < 9 else None, self)
+            button = TileButton(tile, i + 1 if 1 < n and i < 9 else None, self)
             button.clicked.connect(lambda _=False, t=tile: self.chosen.emit(t))
             layout.addWidget(button, i // self.columns, i % self.columns)
             self.buttons.append(button)
@@ -195,9 +196,11 @@ class StatusStrip(QFrame):
 
     def set_result(self, index: int, result: CheckResult) -> None:
         if result.ok:
-            self._show(index, '<span style="color:#1b7a2f">✓</span>', result.text or "OK", True)
+            self._show(index, '<span style="color:#1b7a2f; font-size:26px; font-weight:bold">✓</span>',
+                       result.text or "OK", True)
         else:
-            self._show(index, '<span style="color:#c62828">✗</span>', result.text or "Problem", False)
+            self._show(index, '<span style="color:#c62828; font-size:26px; font-weight:bold">✗</span>',
+                       result.text or "Problem", False)
 
     def _show(self, index: int, symbol: str, text: str, ok: bool | None) -> None:
         chip = self.chips[index]
@@ -292,11 +295,13 @@ class MainWindow(QWidget):
         self.failure_title = _label("", "heading")
         self.failure_sentence = _label("", "sentence")
         self.failure_detail = _label("", "small")
-        self.failure_tail = _label("", "tail")
-        self.failure_tail.setTextFormat(Qt.TextFormat.PlainText)
-        self.failure_tail.setWordWrap(True)
-        self.failure_tail.setAlignment(Qt.AlignmentFlag.AlignLeft | Qt.AlignmentFlag.AlignTop)
-        self.failure_tail.setSizePolicy(QSizePolicy.Policy.Preferred, QSizePolicy.Policy.Expanding)
+        # Scrolls rather than growing, so long output never pushes the
+        # button off the screen; never takes focus from the button.
+        self.failure_tail = QPlainTextEdit()
+        self.failure_tail.setObjectName("tail")
+        self.failure_tail.setReadOnly(True)
+        self.failure_tail.setFocusPolicy(Qt.FocusPolicy.NoFocus)
+        self.failure_tail.setMinimumHeight(120)
         self.failure_back = Button("Back to start")
         self.failure_back.clicked.connect(self.show_home)
         self.failure_page = _page(
@@ -340,7 +345,7 @@ class MainWindow(QWidget):
         if self.stack.indexOf(page) < 0:
             self.stack.addWidget(page)
         self.stack.setCurrentWidget(page)
-        idle = self.runner.running is None and page is not self.message_page
+        idle = self.runner.running is None and page not in (self.message_page, self.confirm_page)
         self.restart_button.setVisible(idle)
         self.shutdown_button.setVisible(idle)
         if focus is not None:
@@ -354,7 +359,7 @@ class MainWindow(QWidget):
 
     def show_home(self) -> None:
         if self.config is None:
-            self._show(self.error_page, self.shutdown_button)
+            self._show(self.error_page, self.restart_button)
             return
         self._show(self.tiles_page)
         self.grid.focus(self._last_tile)
@@ -410,7 +415,8 @@ class MainWindow(QWidget):
         lines = list(result.tail)
         if result.error:
             lines.append(result.error)
-        self.failure_tail.setText("\n".join(lines) or "(It printed nothing.)")
+        self.failure_tail.setPlainText("\n".join(lines) or "(It printed nothing.)")
+        self.failure_tail.verticalScrollBar().setValue(self.failure_tail.verticalScrollBar().maximum())
         if result.returncode is None:
             self.failure_detail.setText("")
         elif result.returncode < 0:

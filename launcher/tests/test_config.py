@@ -81,6 +81,10 @@ def test_missing_file(tmp_path: Path) -> None:
         load(tmp_path / "nope.toml")
 
 
+def test_error_names_the_file(tmp_path: Path) -> None:
+    assert error(tmp_path, "").startswith(f"{tmp_path / 'station.toml'}: ")
+
+
 def test_bad_toml(tmp_path: Path) -> None:
     assert "not valid TOML" in error(tmp_path, "[[tile]\nid = ")
 

@@ -55,7 +55,10 @@ def load(path: Path) -> Config:
         raise ConfigError(f"Cannot read {path}: {e.strerror}.") from None
     except tomllib.TOMLDecodeError as e:
         raise ConfigError(f"{path} is not valid TOML: {e}.") from None
-    return parse(data, path)
+    try:
+        return parse(data, path)
+    except ConfigError as e:
+        raise ConfigError(f"{path}: {e}") from None
 
 
 def parse(data: dict[str, Any], path: Path = DEFAULT_PATH) -> Config:
