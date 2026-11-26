@@ -184,7 +184,7 @@ commit recorded and is retried at the next boot.
 ## State
 
 Built 2026-11-24. The only install on real hardware, on the MacBook
-`ibp-april`, is not trustworthy (see Machines).
+`ibp-bilbo`, is not trustworthy (see Machines).
 
 Tested in the QEMU VM (`KIOSK_TEST=1 ./build.sh`, `./test-vm.sh install`,
 `shipping` profile, dummy credentials, 4 GB): the unattended install onto an
@@ -218,7 +218,7 @@ Host names are `ibp-<name>`, where the name is a Tolkien character (decided
 2026-11-25): short, easy to spell aloud, no villains (`ibp-frodo`,
 `ibp-pippin`, `ibp-merry`, `ibp-gimli`). The name belongs to the hardware and
 stays when the profile changes; the role volunteers see is `name` in
-`station.toml`. `ibp-april` was named before this.
+`station.toml`.
 
 Every kiosk machine joins the **IBP tailnet** (GitHub organisation
 `insidebooksproject`, set up 2026-11-25), never jstarr's personal one. Build
@@ -229,22 +229,23 @@ sign a station in interactively: an untagged machine belongs to the person
 and gets admin access. The move of the existing hosts is in the IBP
 workspace's `BACKLOG.md` (the `meta` repo).
 
-### MacBook `ibp-april` (model A1278)
+### MacBook `ibp-bilbo` (model A1278)
 
 **Next step: fit the replacement hard-drive flex cable (`821-1480-A`, on
 order), reinstall from the stick with no extra boot options, then check it
-over SSH (`ibp@ibp-april.local`). Then fill in this section and wipe the
-stick (it holds the Wi-Fi passwords and the admin password hash).**
+over SSH (`ibp@ibp-bilbo.local`). Then fill in this section and wipe the
+stick (it holds the Wi-Fi passwords, the Tailscale key and the admin
+password hash).**
 
-The stick (the 14.6 GB USB flash drive, written 2026-11-24): profile
-`shipping`, hostname `ibp-april`; Wi-Fi profiles `ibp-wifi` (home 2.4 GHz,
-Bitwarden `Home WIFI 2.4G`) and `ibp-site-wifi` (Bitwarden `IBP WIFI`); the
-`ibp` admin password is Bitwarden `ibp-kiosk`. shippy and shippy-gui have
+The stick (the 14.6 GB USB flash drive, rewritten 2026-11-25 from `main` at
+`685e362`): profile `shipping`, hostname `ibp-bilbo` (the first stick, and
+the 2026-11-24 install, called the machine `ibp-april`); Wi-Fi profiles
+`ibp-wifi` (home 2.4 GHz, Bitwarden `Home WIFI 2.4G`) and `ibp-site-wifi`
+(Bitwarden `IBP WIFI`); the `ibp` admin password is Bitwarden `ibp-kiosk`;
+the IBP tailnet's station key, so it joins as `ibp-bilbo` on first boot. It
+updates itself from `deploy` at boot. shippy and shippy-gui have
 **placeholder** configs (no real API keys): the shipping tiles open but
-can't look up requests or buy postage. No Tailscale key, no log share. It
-was written before the 2026-11-25 changes, the boot updater among them, so
-an install from it doesn't update itself until `setup.sh` is rerun from a
-current checkout (or the stick is rebuilt).
+can't look up requests or buy postage. No log share.
 
 The disk: the internal SSD (Patriot P210 128GB) was not usable: link CRC
 errors at 6 Gbps and no IDENTIFY at lower speeds, coming and going with

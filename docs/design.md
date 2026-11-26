@@ -176,7 +176,7 @@ one internal disk of any kind, and refuses when there isn't exactly one.
 Steps 4 to 6 erase the machine's current install (Windows on the laptops,
 Linux Mint on the intake station) and can't be undone without a disk image
 taken first. The first hardware trial, outside this list, is the MacBook
-`ibp-april` (`CLAUDE.md`, "Machines").
+`ibp-bilbo` (`CLAUDE.md`, "Machines").
 
 ## To verify
 
