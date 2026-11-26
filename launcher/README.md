@@ -63,10 +63,7 @@ Options: `--config PATH` (or `IBP_KIOSK_CONFIG`; default
   anything else (including a timeout or a missing program) a cross on a red
   chip. A chip shows the mark and the check's label, and the chips share the
   width equally; the first line of stdout is the chip's tooltip (hover, or
-  click the chip). With `show_text = true` the chip shows that line after
-  the label too and counts as two chips in width; it is hidden until its
-  first result, and whenever the check exits 0 and prints nothing. Changes
-  are logged.
+  click the chip). Changes are logged.
 - **Errors.** A missing or invalid `station.toml` shows a full-screen message
   with the reason and the power buttons. Unexpected exceptions are logged to
   stderr and never end the launcher. SIGTERM, SIGINT or SIGHUP stop the

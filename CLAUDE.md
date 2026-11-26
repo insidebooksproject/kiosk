@@ -90,9 +90,6 @@ command = ["ibp-kiosk-app", "ship-individual"]
 label = "Label printer"
 command = ["ibp-kiosk-status", "printer-shipping"]
 interval = 15                # seconds between checks (default 15)
-show_text = false            # true: the chip also shows the check's text,
-                             # and is hidden while the check is fine and
-                             # prints nothing (the Battery chip)
 
 [[admin]]                    # admin screen entries, same keys as [[tile]]
 id = "wifi"

@@ -147,39 +147,6 @@ def test_status_chips_share_the_width(window: MainWindow) -> None:
     assert first.x() + first.width() < second.x() and second.geometry().right() < window.width()
 
 
-def test_show_text_chip(qapp: QApplication) -> None:
-    config = Config(name="T", tiles=TILES, statuses=(
-        StatusCheck("Network", ("true",)),
-        StatusCheck("Battery", ("true",), show_text=True),
-    ))
-    w = MainWindow(config, windowed=True)
-    w.resize(1280, 800)
-    w.show()
-    try:
-        network, battery = w.strip.chips
-        assert network.isVisible() and not battery.isVisible()  # nothing to show yet
-        w.strip.set_result(1, CheckResult(True, "86%, about 2½ hours left"))
-        assert battery.isVisible()
-        assert "✓" in battery.text() and "Battery" in battery.text()
-        assert "86%, about 2½ hours left" in battery.text()
-        assert battery.toolTip() == "Battery: 86%, about 2½ hours left"
-        w.strip.set_result(1, CheckResult(False, "15%, plug in the charger"))
-        assert "✗" in battery.text() and "plug in the charger" in battery.text()
-        assert battery.property("state") == "bad"
-        w.strip.set_result(1, CheckResult(True, "<b>"))
-        assert "&lt;b&gt;" in battery.text()
-        # Fine and nothing to say (no battery): the chip goes away.
-        w.strip.set_result(1, CheckResult(True, ""))
-        assert not battery.isVisible() and network.isVisible()
-        w.strip.set_result(1, CheckResult(False, ""))
-        assert battery.isVisible() and "Problem" in battery.text()
-        QTest.qWait(50)
-        assert battery.width() > network.width()
-    finally:
-        w.close()
-        w.deleteLater()
-
-
 def test_power_confirm_and_cancel(window: MainWindow, monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("IBP_KIOSK_POWEROFF", "true")
     window.shutdown_button.click()

@@ -263,8 +263,7 @@ station without feature `shipping` the tool installs itself on first use.
 Every external call has a timeout; the slowest case is about 6 s. The
 launcher's strip shows only a mark and the check's label; the text is the
 chip's tooltip, after the label ("IBP server: Not reachable"), so the texts
-don't repeat the label. The Battery chip (`show_text = true`) shows its text
-on the chip as well.
+don't repeat the label.
 
 | Check | How | Texts |
 |---|---|---|
