@@ -216,6 +216,18 @@ SIGTERM (what the Home key sends) and after SIGKILL, and the next start's
 first request carries no old cookie; the extension's storage is unchanged;
 the Book Portal tile still reaches the ID.me sign-in.
 
+The boot updater's shutdown wait and status texts were tested in the VM
+2026-11-26 (`portal` profile, 2 GB, a local `deploy` branch whose
+`setup.sh` only sleeps): the Updates chip goes "Checking…", "Updating…",
+"Updated (restart to finish)", or "Checking…" then "Could not check (no
+internet?)" with the source unreachable. A reboot during `setup.sh` showed
+"Finishing an update, please wait. Don't turn the computer off." on tty8
+within 4 seconds and until the reboot; it waited until `setup.sh` ended
+(40 s), or 2 min 1 s before killing one that ran on, and the next boot
+redid that update. A reboot while checking took under a second, and
+neither a plain reboot nor an update ending while the system runs shows
+anything. Not seen on real hardware (the switch to tty8 on Intel graphics).
+
 Not tested: any real hardware (PM-2411-BT and DYMO printers, Wi-Fi, the Acer
 laptops, the Chromebook's 2 GB); the IBP Requests page itself (the server
 isn't reachable from the VM); the `intake` and `portal` profiles; the print
