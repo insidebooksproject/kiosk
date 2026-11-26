@@ -42,6 +42,23 @@ status() {
     printf '%s %s\n' "$1" "$2" >"$STATE/status.new" && mv "$STATE/status.new" "$STATE/status"
 }
 
+# `ibp-kiosk-update stop` is the unit's ExecStop=. systemd runs it whenever
+# the unit stops, also after the update has ended by itself (then MAINPID
+# is unset). A shutdown that has to wait for setup.sh says so on screen: on
+# tty8, switched to, because the end of the kiosk session clears tty1.
+if [ "${1:-}" = stop ]; then
+    [ -n "${MAINPID:-}" ] || exit 0
+    [ "$(systemctl is-system-running)" = stopping ] || exit 0
+    state=
+    read -r state _ 2>/dev/null <"$STATE/status"
+    [ "$state" = updating ] || exit 0
+    log "shutting down during an update: waiting for it to finish"
+    printf '\033[2J\033[H\n  %s\n' \
+        "Finishing an update, please wait. Don't turn the computer off." \
+        >/dev/tty8 2>/dev/null && chvt 8
+    exit 0
+fi
+
 mkdir -p "$STATE" || exit 1
 chmod 755 "$STATE" "${STATE%/*}"
 status checking "Checking…"

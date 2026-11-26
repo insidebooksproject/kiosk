@@ -66,6 +66,7 @@ this one grew from.
 | `ibp-kiosk-tool TOOL COMMAND` | Installs or upgrades shippy, shippy-gui or ibp-printing from its `deploy` branch as a uv tool, then runs COMMAND (`docs/apps.md`) |
 | `ibp-kiosk-log-upload` | Copies the label-printer logs to the station's Samba share; run by `ibp-kiosk-log-upload.timer` |
 | `ibp-kiosk-update` | Run as root by `ibp-kiosk-update.service` at boot: when the `deploy` branch of this repo has moved, clones it and runs its `setup.sh`; state in `/var/lib/ibp-kiosk/update` (`commit`, `src`, `status`) |
+| `ibp-kiosk-update stop` | The unit's `ExecStop=`: at a shutdown during `setup.sh`, shows "Finishing an update" on tty8 while the shutdown waits (up to 2 minutes) |
 | `ibp-kiosk-status network\|server\|printer-shipping\|printer-package\|update\|battery` | One status check: exit 0 = fine, non-zero = problem; first line of stdout is a short text for the volunteer (`battery` prints nothing on a machine with no battery) |
 
 `ibp-kiosk-app` runs in the foreground and exits when the app closes; its
@@ -169,7 +170,8 @@ merge into `main`, try it in the VM (`UPDATE_URL` in the VM's
 `deploy` to `main` (`git push origin main:deploy`). `setup.sh` and every
 `setup.d` step must stay safe to rerun on a live station with no secrets
 directory, and must not restart the session. A failed run keeps the old
-commit recorded and is retried at the next boot.
+commit recorded and is retried at the next boot, and so does one a
+shutdown cuts off (a shutdown waits 2 minutes for `setup.sh`).
 
 ## Rules
 
