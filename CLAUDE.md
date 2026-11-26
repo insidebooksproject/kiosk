@@ -234,11 +234,17 @@ refusal during a shutdown, with apt upgrading a package, is untested.
 
 Not tested: any real hardware (PM-2411-BT and DYMO printers, Wi-Fi, the Acer
 laptops, the Chromebook's 2 GB); the IBP Requests page itself (the server
-isn't reachable from the VM); the single all-tiles configuration that
-replaced the profiles (2026-11-26), including the print server and label
-watcher both running on one machine and on the 2 GB Chromebook; the print
-server; log upload to the real share; Tailscale join. `docs/apps.md` has the
+isn't reachable from the VM); the print server with a real DYMO; log upload to the real share; Tailscale join. `docs/apps.md` has the
 apps' own "Not verified" list and `docs/design.md` the rollout.
+
+The removal of profiles (`201d796`) was tested in the VM 2026-11-26 at
+2 GB: a fresh install shows all six tiles and five status chips, with the
+print server, CUPS and the label watcher running and the low-memory prefs
+installed; with the Book Portal open, 1.1 GB used and 870 MB available. An
+old `portal` install (`e62aa7d`) updated by its boot updater from a local
+`main` in 32 s, removed `profile.conf`, and came back with every tile. A
+reboot at the end of a rerun shut down in 2 s; a reboot during the first,
+longer run (apt and the app installs) was not caught.
 
 Known rough edges:
 - A bad or missing Google Maps key makes shippy-gui exit with a Python
@@ -268,22 +274,21 @@ the names `ibp-pippin` and `ibp-merry`.
 
 ### Chromebook `ibp-frodo`
 
-The 2 GB Chromebook that ran the old Book Portal kiosk. Not installed yet.
-The 14.6 GB USB flash drive holds its installer (written 2026-11-26 from
-`main` at `5b46eb4`, checked against the ISO): profile `portal`, hostname
-`ibp-frodo`, the same two Wi-Fi profiles, admin password and tailnet
-station key as `ibp-bilbo`'s stick, so the stick holds those secrets. A test
-build of the same commit and profile was installed in the VM with 2 GB the
-same day: it boots straight to the Book Portal's ID.me sign-in with the bar
-on top, about 900 MB used with Firefox open and no swap. Nothing is known
-yet about the Chromebook's own Wi-Fi and graphics under this image.
+The 2 GB Chromebook that ran the old Book Portal kiosk: 14 GB eMMC
+(`/dev/mmcblk0`), 1.9 GB of RAM. Installed 2026-11-26 from the USB stick
+(profile `portal`, written from `main` at `5b46eb4`); on the LAN as
+`ibp-frodo.local` (`192.168.1.41`); SSH `ibp`, host key under the alias
+`ibp-frodo` (`-o HostKeyAlias=ibp-frodo`: an older `known_hosts` entry for
+that address belongs to another machine). It is not shared to jstarr's
+personal tailnet, so it can't be reached from outside the LAN yet.
 
-The stick predates the removal of profiles (2026-11-26), so an install from
-it first shows the Book Portal tile only. Its boot updater then runs the
-current `deploy` (once released), which gives it every tile from the next
-boot, the print server and label watcher, and shippy and shippy-gui
-(about 700 MB). It has no shippy configs, so the shipping tiles fail until
-they are added. Rebuilding the stick (with the configs) avoids both steps.
+After `deploy` moved to `201d796` the same day, two restarts gave it every
+tile: the first ran the update (2 minutes, including shippy-gui), the
+second started the launcher with the new tiles. The print server, CUPS and
+the label watcher run; 435 MB used at the tiles. It has no shippy,
+shippy-gui or log-share configs, so the three shipping tiles fail until
+they are added (rerun `setup.sh` with a secrets directory). Its stick still
+holds the Wi-Fi passwords, admin password hash and tailnet station key.
 
 ### MacBook `ibp-bilbo` (model A1278)
 
