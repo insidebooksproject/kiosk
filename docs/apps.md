@@ -144,7 +144,7 @@ ibp-kiosk-tool [--no-upgrade | --install-only] TOOL [COMMAND [ARG...]]
 | `shippy` | `shippy @ git+https://github.com/insidebooksproject/shippy.git@deploy` | Ship Individual, Ship Bulk |
 | `shippy-gui` | `shippy-gui @ git+https://github.com/insidebooksproject/shippy-gui.git@deploy` | Ship Manual |
 | `ibp-printing` | `ibp-printing[watcher] @ git+https://github.com/insidebooksproject/printing.git@deploy` | label watcher, Printer check (`--no-upgrade`) |
-| `ibp-printing-server` | `ibp-printing[linux] @ ...@deploy` | the print server (user `ibp-kiosk-print`) |
+| `ibp-printing-server` | `ibp-printing @ ...@deploy` | the print server (user `ibp-kiosk-print`) |
 
 Releasing an app stays as it is: fast-forward its repo's `deploy`; stations
 pick it up at the next launch (the watcher and print server at their next
@@ -228,15 +228,10 @@ overwrites that unless a *different* `shippy-gui.ini` secret is supplied
 (the last one's checksum is in `/var/lib/ibp-kiosk/shippy-gui.ini.sha256`),
 and then keeps the old file as `config.ini.bak-<date>`.
 
-**No `linux` extra.** `shippy-gui[linux]` pulls `ibp-printing[linux]`, i.e.
-pycups, which only exists on PyPI as a source tarball (pycups 2.0.4, no
-wheels), so installing it needs `build-essential`, `python3-dev` and
-`libcups2-dev` on the station. The shipping printers (PM-2411-BT) print over
-direct USB through usblp, with no CUPS at all; pycups is only for CUPS
-queues' default media size. Without pycups, ibp-printing falls back to
-`lpstat`/`lp` for queues. The shipping stations get `cups-client` (no CUPS
-daemon) only so that `lpstat` exists and `ibp-print-diag` reports no queues
-instead of an error.
+**No CUPS.** ibp-printing dropped CUPS on 2026-11-26: on Linux it prints
+only to the printers it drives directly over USB (usblp), the PM-2411-BT
+here, and its `linux` extra is empty. So the shipping stations need no CUPS
+packages at all.
 
 The PyPI PySide6 wheels bring their own Qt but load system libraries (EGL,
 GL, fontconfig, freetype, D-Bus, GLib, xkbcommon, Wayland client, XCB);
@@ -305,7 +300,7 @@ from `deploy` at each start, `Restart=on-failure` after 30 s).
 What the code does on Linux (ibp-printing `deploy`, d4635f0):
 
 - It prints. The watcher prints through the same backend as the apps
-  (`DirectFirstBackend`: the PM-2411-BT over usblp first, then CUPS queues),
+  (`DirectFirstBackend`: the PM-2411-BT over usblp; Linux has no queues),
   which is the path verified on real hardware on 2026-10-04. Nothing in
   the watcher is Windows-only except message boxes.
 - No message boxes: `notify.message_box` returns without showing anything
@@ -353,12 +348,15 @@ Run it now: `sudo systemctl start ibp-kiosk-log-upload`; result:
 
 Feature `package-printer`, `70-package-printer.sh`:
 
-- Installs `cups cups-client cups-filters printer-driver-dymo`, and
-  `build-essential python3-dev libcups2-dev` to build pycups.
+- Installs `cups cups-client cups-filters`, only so that Firefox can print
+  the frontend's label PDF (the fallback when the print server fails). No
+  DYMO driver and no DYMO queue: the print server drives the printer
+  directly over USB (the printing repo's `docs/printers/dymo-lw450.md`).
 - Creates the system user `ibp-kiosk-print` (home `/var/lib/ibp-kiosk-print`)
-  and preinstalls `ibp-printing[linux]` from `deploy` as that user.
+  and preinstalls `ibp-printing` from `deploy` as that user.
 - Enables `cups` and `ibp-kiosk-print-server.service`, which runs
-  `ibp-print-server server` (port 40121) as `ibp-kiosk-print`. Its `Wants=`
+  `ibp-print-server server` (port 40121) as `ibp-kiosk-print`, with
+  `SupplementaryGroups=lp` so it can open `/dev/usb/lpN`. Its `Wants=`
   starts `ibp-kiosk-print-server-update.service` first (`uv tool upgrade`,
   as upstream's `ExecStartPre`), so every boot picks up `deploy`; if that
   fails the installed version starts. The server unit allows only loopback
@@ -366,38 +364,20 @@ Feature `package-printer`, `70-package-printer.sh`:
   listens on every interface, but only this machine's browser needs it.
   That is why the update is a separate unit.
 - Why a service user and not `kiosk` or the admin: the Home key can't touch
-  it, it has its own tool install with the `linux` extra, and an admin
-  account isn't needed (upstream runs it as `ibp`, the intake station's
+  it, it has its own tool install, and an admin account isn't needed (upstream runs it as `ibp`, the intake station's
   login).
 - USB autosuspend off for DYMO devices (vendor `0922`).
 - No resume unit: the stations shut down on lid close.
 
-**On site, once per station: the DYMO queue.** The print server only uses a
-queue whose name ends in the printer's USB `VID:PID`
-(the printing repo's README, "Printer naming rule"), and fits the label to the
-queue's default page size. As `ibp` (sudo), with the printer plugged in:
-
-```sh
-lsusb | grep -i dymo                 # "ID 0922:xxxx Dymo-CoStar Corp. LabelWriter 450 Turbo"
-lpinfo -v | grep -i dymo             # the device URI, usb://DYMO/LabelWriter%20450%20Turbo?serial=...
-lpinfo -m | grep -i '450 Turbo'      # the driver's model name for -m
-sudo lpadmin -p DYMO_LabelWriter_450_Turbo_0922:xxxx -E \
-    -v 'usb://DYMO/LabelWriter%20450%20Turbo?serial=...' \
-    -m '<model from lpinfo -m>' \
-    -o PageSize=w102h252
-```
-
-`w102h252` is "30321 Large Address" (1.4 x 3.5 in), the label the
-print-server docs size for (420 x 1050 px). If the intake station uses
-another roll, copy its size: `lpoptions -p <queue> -l | grep PageSize` on
-`ibp-label-printer` shows the current default (marked `*`). Then check,
-without and with a print:
+**On site:** plug in the DYMO (loaded with 30321 labels, the size the
+printing repo's model assumes). Nothing to set up. Then check, without and
+with a print:
 
 ```sh
 curl -s localhost:40121/health        # "count": 1
 ibp-kiosk-status printer-package      # Ready
-sudo -u ibp-kiosk-print -H /var/lib/ibp-kiosk-print/.local/bin/ibp-print-server list
-sudo -u ibp-kiosk-print -H /var/lib/ibp-kiosk-print/.local/bin/ibp-print-server test   # prints a test label
+sudo -u ibp-kiosk-print -g lp -H /var/lib/ibp-kiosk-print/.local/bin/ibp-print-server list
+sudo -u ibp-kiosk-print -g lp -H /var/lib/ibp-kiosk-print/.local/bin/ibp-print-server test   # prints a test label
 ```
 
 ## Where things are on a station
@@ -475,8 +455,9 @@ Not verified (needs the VM or the hardware):
   (expected to work; see above).
 - Log upload against the real share (mount.cifs, rsync onto SMB, the
   `<hostname>` folder).
-- The print server under the service user and `IPAddressDeny`; pycups
-  building on trixie; the DYMO queue commands above.
+- The print server under the service user, `IPAddressDeny` and
+  `SupplementaryGroups=lp` (the same server prints directly on the intake
+  station since 2026-11-26).
 - The uv tool preinstalls in the installer's chroot (the VM install ran
   `setup.d` there; whether the preinstalls worked or the first launches
   installed the tools is not recorded).

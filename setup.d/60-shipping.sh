@@ -12,11 +12,10 @@ ibp_ship_rule=/etc/udev/rules.d/60-ibp-kiosk-label-printer.rules
 if has_feature shipping && ! id kiosk >/dev/null 2>&1; then
     ibp_apps_warn "no kiosk user; skipping the shipping setup"
 elif has_feature shipping; then
-    # The direct-USB printer path needs no CUPS. cups-client only gives
-    # ibp-printing its lpstat (no queues, but no "lpstat not found" in
-    # ibp-print-diag). cifs-utils mounts the log share. The rest are the
-    # system libraries the PyPI PySide6 wheels in shippy-gui load.
-    ibp_apps_apt cups-client cifs-utils \
+    # The direct-USB printer path needs no CUPS (ibp-printing dropped it).
+    # cifs-utils mounts the log share. The rest are the system libraries
+    # the PyPI PySide6 wheels in shippy-gui load.
+    ibp_apps_apt cifs-utils \
         libegl1 libgl1 libfontconfig1 libfreetype6 libdbus-1-3 libglib2.0-0t64 \
         libxkbcommon0 libxkbcommon-x11-0 \
         libwayland-client0 libwayland-cursor0 libwayland-egl1 \

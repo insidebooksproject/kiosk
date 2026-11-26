@@ -136,7 +136,7 @@ KIOSK_FEATURES="shipping"    # space-separated, see below
 | Feature | Turns on |
 |---|---|
 | `shipping` | uv, shippy and shippy-gui config, the PM-2411-BT udev rule, `ibp-label-watcher` (user service), log upload timer |
-| `package-printer` | uv, CUPS and `ibp-print-server` (DYMO LabelWriter, `localhost:40121`) |
+| `package-printer` | uv, `ibp-print-server` (DYMO LabelWriter over direct USB, `localhost:40121`), and CUPS for printing the label PDF from Firefox |
 | `low-memory` | Firefox low-memory prefs (2 GB Chromebook) |
 
 The profiles and their tiles: `README.md`, "Profiles".

@@ -1,7 +1,8 @@
 # IBP station, feature package-printer: ibp-print-server from ibp-printing's
 # `deploy` branch. The IBP frontend (the IBP Requests tile) posts each
 # request label to http://localhost:40121/print-image and this prints it on
-# the DYMO LabelWriter's CUPS queue. Adapted from ibp-printing
+# the DYMO LabelWriter, directly over USB (/dev/usb/lpN, group lp). Adapted
+# from ibp-printing
 # packaging/linux/ibp-print-server.service (as on ibp-label-printer).
 #
 # Differences from that unit:
@@ -14,17 +15,18 @@
 # - No resume unit: the stations shut down on lid close, never suspend.
 [Unit]
 Description=IBP label print server (localhost:40121)
-Wants=cups.service network-online.target ibp-kiosk-print-server-update.service
-After=cups.service network-online.target ibp-kiosk-print-server-update.service
+Wants=network-online.target ibp-kiosk-print-server-update.service
+After=network-online.target ibp-kiosk-print-server-update.service
 
 [Service]
 Type=simple
 User=ibp-kiosk-print
+# Opens the printer's usblp node (root:lp 0660).
+SupplementaryGroups=lp
 ExecStart=/usr/local/bin/ibp-kiosk-tool --no-upgrade ibp-printing-server ibp-print-server server
 Restart=on-failure
 RestartSec=5
-# Only loopback traffic: the browser on this machine, and CUPS on localhost
-# (pycups and lp use CUPS's socket or localhost:631).
+# Only loopback traffic: the browser on this machine.
 IPAddressDeny=any
 IPAddressAllow=localhost
 NoNewPrivileges=yes
