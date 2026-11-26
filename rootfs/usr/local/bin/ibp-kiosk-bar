@@ -1,0 +1,42 @@
+#!/bin/sh
+# ibp-kiosk-bar: the bar across the top of the screen (waybar, configured in
+# /etc/ibp-kiosk/waybar): a Home button, the station's name, the battery and
+# the clock. It stays visible above every app.
+#
+#   ibp-kiosk-bar           run the bar. Started by labwc's autostart; starts
+#                           it again if it stops, for as long as labwc runs
+#   ibp-kiosk-bar battery   one line of JSON for the bar's battery text: what
+#                           `ibp-kiosk-status battery` says, with the class
+#                           "low" when that check reports a problem
+set -u
+
+CONF_DIR=${IBP_KIOSK_CONF_DIR:-/etc/ibp-kiosk}
+
+case ${1:-} in
+'')
+    # labwc sets LABWC_PID for what its autostart runs.
+    labwc=${LABWC_PID:-}
+    while :; do
+        waybar -c "$CONF_DIR/waybar/config.jsonc" -s "$CONF_DIR/waybar/style.css"
+        sleep 2
+        [ -n "$labwc" ] && kill -0 "$labwc" 2>/dev/null || exit 0
+    done
+    ;;
+battery)
+    text=$(ibp-kiosk-status battery)
+    status=$?
+    # No battery: no text, and waybar shows nothing.
+    if [ -z "$text" ]; then
+        echo '{"text": ""}'
+        exit 0
+    fi
+    class=ok
+    [ "$status" -eq 0 ] || class=low
+    text=$(printf '%s' "$text" | sed 's/[\\"]/\\&/g')
+    printf '{"text": "Battery: %s", "class": "%s"}\n' "$text" "$class"
+    ;;
+*)
+    echo "usage: ibp-kiosk-bar [battery]" >&2
+    exit 2
+    ;;
+esac

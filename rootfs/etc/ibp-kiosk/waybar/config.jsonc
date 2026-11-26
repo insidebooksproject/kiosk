@@ -1,0 +1,40 @@
+// The IBP station's bar across the top of the screen (waybar), run by
+// ibp-kiosk-bar. It stays visible above every app: the windows open
+// maximized in the space under it.
+{
+    "layer": "top",
+    "position": "top",
+    "height": 40,
+    "spacing": 0,
+    "modules-left": ["custom/home", "custom/station"],
+    "modules-right": ["custom/battery", "custom/clock"],
+
+    // The same as the Home key: close the current app and show the tiles.
+    "custom/home": {
+        "format": "Home",
+        "on-click": "ibp-kiosk-launcher home",
+        "tooltip": false
+    },
+    "custom/station": {
+        "exec": "hostname",
+        "interval": "once",
+        "escape": true,
+        "tooltip": false
+    },
+    // Empty (so not shown) on a machine with no battery.
+    "custom/battery": {
+        "exec": "ibp-kiosk-bar battery",
+        "return-type": "json",
+        "interval": 15,
+        "escape": true,
+        "tooltip": false
+    },
+    // date, not waybar's own clock, whose format has no hour without a
+    // leading zero ("9:05 AM").
+    "custom/clock": {
+        "exec": "date '+%a %b %-d   %-I:%M %p'",
+        "interval": 5,
+        "escape": true,
+        "tooltip": false
+    }
+}

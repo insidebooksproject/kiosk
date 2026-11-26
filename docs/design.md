@@ -78,6 +78,10 @@ that never closes, but a multi-app station needs:
 
 - **A Home key.** labwc binds a key (Super, with a sticker on it)
   to a command that closes the running app and returns to the launcher.
+- **A bar that stays in view.** labwc supports panels (the layer-shell
+  protocol), so waybar can show a Home button, the battery and the clock
+  above whatever app is open (added 2026-11-26: a battery warning on the
+  launcher would be hidden behind the app a volunteer is working in).
 - **Title bars where they help.** labwc is a normal stacking compositor:
   window rules keep main windows maximized and undecorated, give the
   terminal tiles and Ship Manual a title bar with a close button, and leave

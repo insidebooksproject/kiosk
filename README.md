@@ -16,6 +16,10 @@ in [`docs/design.md`](docs/design.md).
 - **labwc** (a small Wayland compositor) runs the launcher. The `kiosk` user
   is logged in automatically on tty1; if the session ends or crashes, the
   login ends and a fresh one starts it again.
+- **A bar across the top** (waybar) stays visible above every app: a Home
+  button, the station's name, the battery and the clock. On battery it
+  shows the charge and about how long it will last, and turns red at 20%
+  ("15%, plug in the charger").
 - **Profiles** decide what a machine shows and installs (below).
 - Admin: the `ibp` user (sudo) over SSH (keys only), on the console
   (Ctrl+Alt+F2), and optionally on the tailnet.
@@ -133,6 +137,7 @@ Nvidia graphics, driven by nouveau), log in over SSH and add
   (ID.me) themselves.
 - **Home key:** the Windows (Super) key on its own closes the
   current app and shows the tiles. On the Chromebook it is the Search key.
+  The Home button at the left of the bar does the same.
 - **Admin screen:** Ctrl+Alt+A on the tiles: hostname, addresses, version,
   Wi-Fi and (with a label printer) the printer check.
 - **Admin console:** Ctrl+Alt+F2, log in as `ibp`. Ctrl+Alt+F1 returns to
@@ -185,7 +190,8 @@ terminal windows and Ship Manual keep a title bar that names them, and
 dialogs one with a close button; the Home key; no menus, desktops or other
 default bindings), `themerc-override` (the title bar's colours and its large
 close button) together with the theme `IBP-Kiosk` in `/usr/share/themes`,
-`environment` and `autostart` (a dark background). When the launcher exits,
+`environment` and `autostart` (a dark background, and the bar:
+`ibp-kiosk-bar`). When the launcher exits,
 labwc exits and getty starts over.
 
 ## Testing in a VM

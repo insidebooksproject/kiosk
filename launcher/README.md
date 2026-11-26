@@ -1,6 +1,6 @@
 # ibp_kiosk: the station launcher
 
-A full-screen PySide6 window with one tile per task, a status strip, and
+A PySide6 window, maximized under the station's bar, with one tile per task, a status strip, and
 Shut down / Restart buttons. It reads `/etc/ibp-kiosk/station.toml` (schema in
 `../CLAUDE.md`) and runs each tile's `command` as a child process, one at a
 time. On a station it is copied to `/usr/local/lib/ibp-kiosk/ibp_kiosk/` and
@@ -18,7 +18,7 @@ IBP_KIOSK_POWEROFF=true IBP_KIOSK_REBOOT=true \
   uv run python -m ibp_kiosk --config examples/station.toml --windowed
 ```
 
-`--windowed` opens a closable 1366x768 window instead of a full-screen one
+`--windowed` opens a closable 1366x768 window instead of a maximized one
 that ignores close requests. The `IBP_KIOSK_POWEROFF` / `IBP_KIOSK_REBOOT`
 variables replace `systemctl poweroff` / `systemctl reboot` (split like a shell
 command line, no shell), so the power buttons don't turn your machine off.

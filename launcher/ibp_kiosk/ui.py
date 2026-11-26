@@ -395,7 +395,9 @@ class MainWindow(QWidget):
         if self.windowed:
             self.show()
         else:
-            self.showFullScreen()
+            # Maximized, not full screen: a full-screen window would cover
+            # the bar (ibp-kiosk-bar). labwc's window rule maximizes it too.
+            self.showMaximized()
         self.raise_()
         self.activateWindow()
 

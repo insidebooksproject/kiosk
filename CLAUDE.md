@@ -53,7 +53,9 @@ this one grew from.
 |---|---|
 | `ibp-kiosk-session` | Started from the `kiosk` login on tty1; runs labwc, which starts the launcher |
 | `ibp-kiosk-launcher` | Runs the launcher (`python3 -m ibp_kiosk`) |
-| `ibp-kiosk-launcher home` | Tells the running launcher to close the current app and show the tiles. labwc binds Super to it |
+| `ibp-kiosk-launcher home` | Tells the running launcher to close the current app and show the tiles. labwc binds Super to it, and the bar's Home button runs it |
+| `ibp-kiosk-bar` | Started by labwc's autostart: runs the bar across the top of the screen (waybar, `/etc/ibp-kiosk/waybar/`) with a Home button, the hostname, the battery and the clock, and starts it again if it stops |
+| `ibp-kiosk-bar battery` | The bar's battery text as waybar JSON: `ibp-kiosk-status battery`, with class `low` when that check fails |
 | `ibp-kiosk-app portal` | Firefox on the TDCJ Book Portal, own profile: an ordinary window with tabs (not kiosk mode) whose close button returns to the tiles |
 | `ibp-kiosk-app requests` | The same on the IBP frontend, own profile |
 | `ibp-kiosk-app packages` | The same on the IBP frontend's packages page (`/packages`), in the `requests` profile |
@@ -115,6 +117,8 @@ names no tile is an error (the launcher shows a config-error screen).
   can't start something.
 - **Power commands** can be replaced with `IBP_KIOSK_POWEROFF` and
   `IBP_KIOSK_REBOOT` (for tests and the VM).
+- **Maximized, not full screen**, like every app: a full-screen window
+  would cover the bar. The bar takes 40 pixels at the top of the screen.
 - Wayland app_id `ibp-kiosk-launcher`. labwc's config is in
   `/etc/ibp-kiosk/labwc/`; the launcher is labwc's session client (`-S`), so
   the session ends, and getty restarts it, if the launcher exits.
@@ -196,10 +200,14 @@ power button; a reboot; and the installer's refusal with two internal
 disks (`./test-vm.sh install --two-disks`: it waits at partitioning and both
 disks stay empty). That run predates the 2026-11-25 changes (Firefox as an
 ordinary window, the title bars, the IBP Packages tile, the status chips,
-the boot updater); this file records no test of them. The Battery chip
-(2026-11-26) was tested with the launcher's tests, against fake sysfs trees
-and by running the check on `ibp-bilbo` on mains power ("Plugged in (86%)");
-its estimate on battery has not been seen on real hardware.
+the boot updater); this file records no test of them.
+
+The bar (2026-11-26) was tested in the VM with a fake battery
+(`IBP_KIOSK_SYS`): it shows above the launcher, Firefox and shippy; each
+battery text; the Home button closes the app; and it comes back when
+killed. The battery check also ran on `ibp-bilbo` on mains power ("Plugged
+in (86%)"). The bar itself, and the estimate on battery, have not been seen
+on real hardware.
 
 Tested in the VM 2026-11-26 (Firefox ESR 153.7): Firefox forgets a
 volunteer's cookies, site storage and history after a clean close, after

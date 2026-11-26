@@ -195,7 +195,7 @@ def test_config_error_page(qapp: QApplication) -> None:
     w.close()
 
 
-def test_close_is_ignored_when_full_screen(qapp: QApplication, tmp_path: Path) -> None:
+def test_close_is_ignored_unless_windowed(qapp: QApplication, tmp_path: Path) -> None:
     w = MainWindow(CONFIG)
     w.show()
     assert not w.close()

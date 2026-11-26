@@ -220,7 +220,7 @@ check_battery() {
     if [ -z "$percent" ] && [ -n "$now" ] && [ "${full:-0}" -gt 0 ]; then
         percent=$((now * 100 / full))
     fi
-    [ -n "$percent" ] || say "Can't read the battery" 1
+    [ -n "$percent" ] || say "Can't be read" 1
     [ "$percent" -gt 100 ] && percent=100
 
     case $(cat "$bat/status" 2>/dev/null) in
