@@ -167,18 +167,18 @@ one internal disk of any kind, and refuses when there isn't exactly one.
 
 ## Rollout
 
-1. **Live USB check on `ibp-laptop2`** (nothing installed, Windows untouched):
-   Wi-Fi, a PM-2411-BT test print with `ibp-print-diag --test-print
-   --direct-only`, the barcode scanner, and `shippy diagnose-printer`. If the
-   printer or the Wi-Fi fails here, stop.
+1. **Live USB check on `ibp-merry`** (formerly `ibp-laptop2`; nothing
+   installed, Windows untouched): Wi-Fi, a PM-2411-BT test print with
+   `ibp-print-diag --test-print --direct-only`, the barcode scanner, and
+   `shippy diagnose-printer`. If the printer or the Wi-Fi fails here, stop.
 2. **Launcher and session in a VM**, using `test-vm.sh`. Done 2026-11-24.
 3. **Installer image**, tested by reinstalling the Chromebook kiosk with the
    `portal` profile.
-4. **Convert `ibp-laptop2`.** Before wiping it, copy off `config.ini` and the
-   logs and take a disk image. `ibp-laptop` stays on Windows for a few
-   shipping sessions as the fallback.
-5. **Convert `ibp-laptop`.**
-6. **Move the intake station** (`ibp-label-printer`) to the image.
+4. **Convert `ibp-merry`.** Before wiping it, copy off `config.ini` and the
+   logs and take a disk image. `ibp-pippin` (formerly `ibp-laptop`) stays
+   on Windows for a few shipping sessions as the fallback.
+5. **Convert `ibp-pippin`.**
+6. **Move the intake station** (`ibp-samwise`) to the image.
 
 Steps 4 to 6 erase the machine's current install (Windows on the laptops,
 Linux Mint on the intake station) and can't be undone without a disk image

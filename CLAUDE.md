@@ -278,8 +278,10 @@ with `KIOSK_TAILSCALE_AUTHKEY` set to the hidden field `auth-key-station` of
 Bitwarden `tailscale insidebooksproject`: it tags the machine
 `tag:ibp-station`, which may reach the server on tcp 80 and 445 only. Don't
 sign a station in interactively: an untagged machine belongs to the person
-and gets admin access. The move of the existing hosts is in the IBP
-workspace's `BACKLOG.md` (the `meta` repo).
+and gets admin access. The existing hosts moved to it on 2026-11-26
+(`ops/tailnet-move.md` in the IBP workspace, the `meta` repo): ibp-server is
+`ibp-server` (`100.92.207.121`) there, and the Windows shipping laptops took
+the names `ibp-pippin` and `ibp-merry`.
 
 ### Chromebook `ibp-frodo`
 
@@ -299,9 +301,10 @@ Reinstalled from the stick 2026-11-25 and checked over SSH
 (`ibp@ibp-bilbo.local`): `product_name` is `MacBookPro9,2`, Ethernet and
 Wi-Fi are both up, it joined the IBP tailnet as `ibp-bilbo`, and the boot
 updater brought it to the current `deploy`. It is at jstarr's home, where
-neither the server's LAN address nor its tailnet address (still the personal
-tailnet) is reachable, so the IBP server chip says "Not reachable" until
-`ibp-server` moves to the IBP tailnet (the workspace's `BACKLOG.md`).
+the server's LAN address isn't reachable, so the IBP server chip says "Not
+reachable". `ibp-server` is on the IBP tailnet since 2026-11-26, so the chip
+will work there once the station's configs point at its tailnet name (the
+workspace's `BACKLOG.md`).
 shippy-gui's config on the machine has the real Google Maps key (Bitwarden
 `Google Maps API (IBP)`, set by hand 2026-11-25); its IBP and EasyPost keys
 and all of shippy's are still placeholders.
