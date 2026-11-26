@@ -234,8 +234,9 @@ refusal during a shutdown, with apt upgrading a package, is untested.
 
 Not tested: any real hardware (PM-2411-BT and DYMO printers, Wi-Fi, the Acer
 laptops, the Chromebook's 2 GB); the IBP Requests page itself (the server
-isn't reachable from the VM); the print server with a real DYMO; log upload to the real share; Tailscale join. `docs/apps.md` has the
-apps' own "Not verified" list and `docs/design.md` the rollout.
+isn't reachable from the VM); the print server with a real DYMO; log
+upload to the real share; Tailscale join. `docs/apps.md` has the apps' own
+"Not verified" list and `docs/design.md` the rollout.
 
 The removal of profiles (`201d796`) was tested in the VM 2026-11-26 at
 2 GB: a fresh install shows all six tiles and five status chips, with the
