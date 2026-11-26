@@ -156,11 +156,13 @@ Nvidia graphics, driven by nouveau), log in over SSH and add
 At every boot the station checks this repo's `deploy` branch
 (`ibp-kiosk-update.service`, in the background) and, when the branch has
 moved, downloads it and runs its `setup.sh`. The "Updates" chip on the
-launcher shows how that went; `journalctl -u ibp-kiosk-update` has the
-details. Launcher and window changes show after the next restart. A failed
-update leaves the installed version running and is tried again at the next
-boot; with no network nothing happens. `/etc/ibp-kiosk/update.conf` can set
-`UPDATE_BRANCH` (empty: no updates) and `UPDATE_URL`. How to release:
+launcher shows how that went ("Checking…" until it knows);
+`journalctl -u ibp-kiosk-update` has the details. Launcher and window
+changes show after the next restart. A failed update leaves the installed
+version running and is tried again at the next boot; with no network
+nothing happens ("Could not check (no internet?)").
+`/etc/ibp-kiosk/update.conf` can set `UPDATE_BRANCH` (empty: no updates)
+and `UPDATE_URL`. How to release:
 `CLAUDE.md`, "Releasing".
 
 The apps (shippy, shippy-gui, ibp-printing) update separately, from their

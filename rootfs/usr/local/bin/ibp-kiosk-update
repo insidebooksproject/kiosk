@@ -16,9 +16,11 @@
 # UPDATE_BRANCH; an empty UPDATE_BRANCH turns updates off (test builds).
 #
 # State, in /var/lib/ibp-kiosk/update: `commit` (the installed commit), `src`
-# (its checkout) and `status` ("ok|updating|failed TEXT", which
-# `ibp-kiosk-status update` shows). For testing, IBP_KIOSK_CONF_DIR and
-# IBP_KIOSK_UPDATE_STATE override the two directories.
+# (its checkout) and `status` ("ok|checking|updating|failed TEXT", which
+# `ibp-kiosk-status update` shows; each run first writes "checking", so the
+# text is never one left over from the last boot). For testing,
+# IBP_KIOSK_CONF_DIR and IBP_KIOSK_UPDATE_STATE override the two
+# directories.
 set -u
 umask 022
 
@@ -42,6 +44,7 @@ status() {
 
 mkdir -p "$STATE" || exit 1
 chmod 755 "$STATE" "${STATE%/*}"
+status checking "Checking…"
 
 if [ -z "$UPDATE_BRANCH" ]; then
     log "updates are off (UPDATE_BRANCH is empty in $CONF_DIR/update.conf)"
@@ -59,6 +62,7 @@ while :; do
     tries=$((tries + 1))
     if [ "$tries" -ge 6 ]; then
         log "can't reach $UPDATE_URL ($UPDATE_BRANCH); keeping the installed version"
+        status ok "Could not check (no internet?)"
         exit 0
     fi
     sleep 20
