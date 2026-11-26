@@ -45,7 +45,8 @@ this one grew from.
   Debian's PySide6 packages (no venv, no network needed to start it).
 - Users: `ibp` (admin, sudo, SSH keys only, created by the installer) and
   `kiosk` (no password, autologin on tty1, runs the session).
-- Everything this project installs is named `ibp-kiosk-*`.
+- Everything this project installs is named `ibp-kiosk-*`, except
+  `/usr/sbin/policy-rc.d`, whose name Debian fixes.
 
 ### Commands (all in `/usr/local/bin`)
 
@@ -146,8 +147,15 @@ The profiles and their tiles: `README.md`, "Profiles".
 `KIOSK_SRC` (this repo's files on the target), `KIOSK_SECRETS` (secrets
 directory, may be empty), `KIOSK_PROFILE`, `KIOSK_FEATURES`, `KIOSK_LIVE`
 (1 on a running system, empty in the installer's chroot: only restart
-services when it is set), and a function `has_feature NAME`. Steps must be
-safe to rerun and must not call `exit`. `setup.sh [-p PROFILE]
+services when it is set), and the functions `has_feature NAME`,
+`shutting_down` (true once a shutdown or restart has begun) and
+`live_systemctl ARGS...`. Steps must be safe to rerun and must not call
+`exit`. On a live system a step starts, stops, restarts and reloads units
+only through `live_systemctl`, which never waits for the job and does
+nothing during a shutdown: a shutdown waits for `setup.sh`, so a
+`systemctl` that waits on a job then never returns (it hung `ibp-bilbo`
+for 10 minutes on 2026-11-26). `rootfs/usr/sbin/policy-rc.d` does the same
+for package scripts that apt runs. `setup.sh [-p PROFILE]
 [SECRETS_DIR]`; without `-p` it reuses the installed profile.
 
 ### Secrets directory (written by `build.sh`, every file optional)
@@ -171,7 +179,9 @@ merge into `main`, try it in the VM (`UPDATE_URL` in the VM's
 `setup.d` step must stay safe to rerun on a live station with no secrets
 directory, and must not restart the session. A failed run keeps the old
 commit recorded and is retried at the next boot, and so does one a
-shutdown cuts off (a shutdown waits 2 minutes for `setup.sh`).
+shutdown cuts off (a shutdown waits 2 minutes for `setup.sh`). Test a
+change to `setup.sh` or a `setup.d` step with a reboot during a real
+`setup.sh` run, not a stand-in that only sleeps.
 
 ## Rules
 
@@ -227,6 +237,18 @@ within 4 seconds and until the reboot; it waited until `setup.sh` ended
 redid that update. A reboot while checking took under a second, and
 neither a plain reboot nor an update ending while the system runs shows
 anything. Not seen on real hardware (the switch to tty8 on Intel graphics).
+
+That test missed a deadlock, which hung `ibp-bilbo` for 10 minutes on
+2026-11-26: a reboot during `40-apply.sh` left its `systemctl reload ssh`
+waiting on the shutdown, which waited on it. Tested in the VM the same day
+(`portal` profile, 2 GB, a real `setup.sh` from a local branch with a
+25-second sleep before `40-apply.sh`'s live changes, reboot during the
+sleep): without `live_systemctl` the shutdown hung until the 2-minute kill
+and the update wasn't recorded; with it, every live change printed
+"shutting down; skipped", `setup.sh` finished and was recorded, and the
+reboot went on at once. A normal rerun still restarts the services.
+`policy-rc.d` is installed 0755 and allows actions outside a shutdown; its
+refusal during a shutdown, with apt upgrading a package, is untested.
 
 Not tested: any real hardware (PM-2411-BT and DYMO printers, Wi-Fi, the Acer
 laptops, the Chromebook's 2 GB); the IBP Requests page itself (the server
