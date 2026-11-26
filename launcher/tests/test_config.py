@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import socket
 from pathlib import Path
 
 import pytest
@@ -31,7 +30,6 @@ def error(tmp_path: Path, text: str) -> str:
 
 def test_example_loads() -> None:
     config = load(LAUNCHER_DIR / "examples" / "station.toml")
-    assert config.name == "Dev station"
     assert config.tiles[0].id == "terminal"
     assert config.tiles[0].command == ("xterm",)
     assert config.statuses[0].label == "Network"
@@ -42,7 +40,6 @@ def test_contract_example_loads(tmp_path: Path) -> None:
     # The example from CLAUDE.md, with its autostart pointing at a tile it has.
     config = load(write(tmp_path, """
 [station]
-name = "Shipping 1"
 autostart = "ship-individual"
 
 [[tile]]
@@ -69,7 +66,6 @@ command = ["ibp-kiosk-app", "wifi"]
 
 def test_defaults(tmp_path: Path) -> None:
     config = load(write(tmp_path, MINIMAL + '\n[[status]]\nlabel = "N"\ncommand = ["true"]\n'))
-    assert config.name == socket.gethostname()
     assert config.autostart is None
     assert config.admin == ()
     assert config.tiles[0].description == ""
@@ -93,7 +89,8 @@ def test_bad_toml(tmp_path: Path) -> None:
     ("text", "message"),
     [
         ("", "no [[tile]]"),
-        ('[station]\nname = "x"\n', "no [[tile]]"),
+        ('[station]\nautostart = "x"\n', "no [[tile]]"),
+        ('[station]\nname = "x"\n' + MINIMAL, "name"),
         (MINIMAL + "[[tiles]]\n", "unknown key tiles"),
         (MINIMAL.replace('label = "A"', 'label = "A"\ncolour = "red"'), "unknown key colour"),
         (MINIMAL.replace('label = "A"\n', ""), "label is missing"),

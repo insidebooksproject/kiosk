@@ -1,9 +1,6 @@
 # A station.toml for trying the launcher on a development machine.
 # The real ones are in profiles/<name>/station.toml.
 
-[station]
-name = "Dev station"
-
 [[tile]]
 id = "terminal"
 label = "Terminal"

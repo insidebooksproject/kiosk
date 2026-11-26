@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import socket
 import tomllib
 from dataclasses import dataclass, field
 from pathlib import Path
@@ -33,7 +32,6 @@ class StatusCheck:
 
 @dataclass(frozen=True)
 class Config:
-    name: str
     tiles: tuple[Tile, ...]
     statuses: tuple[StatusCheck, ...] = ()
     admin: tuple[Tile, ...] = ()
@@ -67,8 +65,7 @@ def parse(data: dict[str, Any], path: Path = DEFAULT_PATH) -> Config:
     station = data.get("station", {})
     if not isinstance(station, dict):
         raise ConfigError("[station] must be a table.")
-    _keys(station, "[station]", required=(), optional=("name", "autostart"))
-    name = _str(station, "name", "[station]", required=False) or socket.gethostname()
+    _keys(station, "[station]", required=(), optional=("autostart",))
     autostart = _str(station, "autostart", "[station]", required=False) or None
 
     tiles = _tiles(data, "tile")
@@ -94,7 +91,6 @@ def parse(data: dict[str, Any], path: Path = DEFAULT_PATH) -> Config:
         )
 
     return Config(
-        name=name,
         tiles=tiles,
         statuses=tuple(statuses),
         admin=admin,

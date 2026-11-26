@@ -1,4 +1,4 @@
-# Intake station. The station name defaults to the hostname.
+# Intake station.
 
 [[tile]]
 id = "requests"

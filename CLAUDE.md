@@ -77,8 +77,7 @@ failure screen would add nothing.
 ### `/etc/ibp-kiosk/station.toml`
 
 ```toml
-[station]
-name = "Shipping 1"          # optional; default is the hostname
+[station]                    # optional
 autostart = "ship-individual"  # optional tile id: started at boot; when
                              # it exits the launcher shows as usual
 
