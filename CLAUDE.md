@@ -64,7 +64,7 @@ this one grew from.
 | `ibp-kiosk-tool TOOL COMMAND` | Installs or upgrades shippy, shippy-gui or ibp-printing from its `deploy` branch as a uv tool, then runs COMMAND (`docs/apps.md`) |
 | `ibp-kiosk-log-upload` | Copies the label-printer logs to the station's Samba share; run by `ibp-kiosk-log-upload.timer` |
 | `ibp-kiosk-update` | Run as root by `ibp-kiosk-update.service` at boot: when the `deploy` branch of this repo has moved, clones it and runs its `setup.sh`; state in `/var/lib/ibp-kiosk/update` (`commit`, `src`, `status`) |
-| `ibp-kiosk-status network\|server\|printer-shipping\|printer-package\|update` | One status check: exit 0 = fine, non-zero = problem; first line of stdout is a short text for the volunteer |
+| `ibp-kiosk-status network\|server\|printer-shipping\|printer-package\|update\|battery` | One status check: exit 0 = fine, non-zero = problem; first line of stdout is a short text for the volunteer (`battery` prints nothing on a machine with no battery) |
 
 `ibp-kiosk-app` runs in the foreground and exits when the app closes; its
 exit status and its stderr/stdout are what the launcher shows on a failure.
@@ -90,6 +90,9 @@ command = ["ibp-kiosk-app", "ship-individual"]
 label = "Label printer"
 command = ["ibp-kiosk-status", "printer-shipping"]
 interval = 15                # seconds between checks (default 15)
+show_text = false            # true: the chip also shows the check's text,
+                             # and is hidden while the check is fine and
+                             # prints nothing (the Battery chip)
 
 [[admin]]                    # admin screen entries, same keys as [[tile]]
 id = "wifi"
@@ -196,7 +199,10 @@ power button; a reboot; and the installer's refusal with two internal
 disks (`./test-vm.sh install --two-disks`: it waits at partitioning and both
 disks stay empty). That run predates the 2026-11-25 changes (Firefox as an
 ordinary window, the title bars, the IBP Packages tile, the status chips,
-the boot updater); this file records no test of them.
+the boot updater); this file records no test of them. The Battery chip
+(2026-11-26) was tested with the launcher's tests, against fake sysfs trees
+and by running the check on `ibp-bilbo` on mains power ("Plugged in (86%)");
+its estimate on battery has not been seen on real hardware.
 
 Tested in the VM 2026-11-26 (Firefox ESR 153.7): Firefox forgets a
 volunteer's cookies, site storage and history after a clean close, after

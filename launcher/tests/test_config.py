@@ -56,6 +56,11 @@ label = "Label printer"
 command = ["ibp-kiosk-status", "printer-shipping"]
 interval = 15
 
+[[status]]
+label = "Battery"
+command = ["ibp-kiosk-status", "battery"]
+show_text = true
+
 [[admin]]
 id = "wifi"
 label = "Wi-Fi"
@@ -64,6 +69,7 @@ command = ["ibp-kiosk-app", "wifi"]
     assert config.autostart == "ship-individual"
     assert config.tiles[0].description == "One package to one person"
     assert config.statuses[0].interval == 15.0
+    assert [s.show_text for s in config.statuses] == [False, True]
     assert config.admin[0].command == ("ibp-kiosk-app", "wifi")
 
 
@@ -109,6 +115,7 @@ def test_bad_toml(tmp_path: Path) -> None:
         (MINIMAL + '[[status]]\nlabel = "N"\ncommand = ["true"]\ninterval = 0\n', "interval"),
         (MINIMAL + '[[status]]\nlabel = "N"\ncommand = ["true"]\ninterval = "5"\n', "interval"),
         (MINIMAL + '[[status]]\nlabel = "N"\ncommand = ["true"]\ninterval = true\n', "interval"),
+        (MINIMAL + '[[status]]\nlabel = "N"\ncommand = ["true"]\nshow_text = "yes"\n', "show_text"),
         (MINIMAL + '[[status]]\nlabel = "N"\n', "[[status]] number 1: command is missing"),
         (MINIMAL + '[[admin]]\nid = "w"\nlabel = "W"\n', "[[admin]] number 1: command"),
     ],

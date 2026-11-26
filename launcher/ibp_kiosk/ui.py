@@ -182,7 +182,8 @@ class TileGrid(QWidget):
 
 class Chip(QLabel):
     """One status check: a mark and the check's label. What the check said is
-    the tooltip, shown on hover and at once on a click or tap."""
+    the tooltip, shown on hover and at once on a click or tap. A show_text
+    chip (a battery meter, say) also shows it after the label."""
 
     def mousePressEvent(self, event: QMouseEvent) -> None:
         QToolTip.showText(event.globalPosition().toPoint(), self.toolTip(), self)
@@ -197,21 +198,30 @@ class StatusStrip(QFrame):
         layout.setSpacing(16)
         self.chips: list[Chip] = []
         self.labels: list[str] = []
+        self.show_text: list[bool] = []
         for check in config.statuses if config else ():
             chip = Chip()
             chip.setObjectName("chip")
             chip.setAlignment(Qt.AlignmentFlag.AlignCenter)
             self.labels.append(check.label)
-            # Chips share the width equally. Wrapping means a long label can
-            # never make the window wider than the screen.
+            self.show_text.append(check.show_text)
+            # Chips share the width equally, a show_text chip counting as
+            # two. Wrapping means a long label can never make the window
+            # wider than the screen.
             chip.setWordWrap(True)
             chip.setMinimumWidth(120)
             self.chips.append(chip)
-            layout.addWidget(chip, 1)
+            layout.addWidget(chip, 2 if check.show_text else 1)
             self._show(len(self.chips) - 1, "…", "Checking", None)
+            # A show_text chip has nothing to show before its first result.
+            chip.setVisible(not check.show_text)
         self.setVisible(bool(self.chips))
 
     def set_result(self, index: int, result: CheckResult) -> None:
+        # A show_text check that is fine and says nothing has nothing to
+        # show (the battery check on a machine with no battery).
+        self.chips[index].setVisible(
+            not (self.show_text[index] and result.ok and not result.text))
         if result.ok:
             self._show(index, '<span style="color:#1b7a2f; font-size:26px; font-weight:bold">✓</span>',
                        result.text or "OK", True)
@@ -221,7 +231,10 @@ class StatusStrip(QFrame):
 
     def _show(self, index: int, symbol: str, text: str, ok: bool | None) -> None:
         chip = self.chips[index]
-        chip.setText(f"{symbol} <b>{_html(self.labels[index])}</b>")
+        shown = f"{symbol} <b>{_html(self.labels[index])}</b>"
+        if self.show_text[index] and ok is not None:
+            shown += f" {_html(text)}"
+        chip.setText(shown)
         chip.setToolTip(f"{self.labels[index]}: {text}")
         chip.setProperty("state", "bad" if ok is False else "good")
         chip.style().unpolish(chip)

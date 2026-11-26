@@ -29,6 +29,7 @@ class StatusCheck:
     label: str
     command: tuple[str, ...]
     interval: float = DEFAULT_INTERVAL
+    show_text: bool = False  # the chip shows what the check said, not only the label
 
 
 @dataclass(frozen=True)
@@ -81,15 +82,19 @@ def parse(data: dict[str, Any], path: Path = DEFAULT_PATH) -> Config:
     statuses = []
     for i, entry in enumerate(_array(data, "status"), 1):
         where = f"[[status]] number {i}"
-        _keys(entry, where, required=("label", "command"), optional=("interval",))
+        _keys(entry, where, required=("label", "command"), optional=("interval", "show_text"))
         interval = entry.get("interval", DEFAULT_INTERVAL)
         if isinstance(interval, bool) or not isinstance(interval, (int, float)) or interval < 1:
             raise ConfigError(f"{where}: interval must be a number of seconds, at least 1.")
+        show_text = entry.get("show_text", False)
+        if not isinstance(show_text, bool):
+            raise ConfigError(f"{where}: show_text must be true or false.")
         statuses.append(
             StatusCheck(
                 label=_str(entry, "label", where),
                 command=_command(entry, where),
                 interval=float(interval),
+                show_text=show_text,
             )
         )
 

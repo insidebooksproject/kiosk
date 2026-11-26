@@ -12,6 +12,8 @@
 #                     time and shippy may be printing, so it is never opened)
 #   printer-package   the print server on localhost:40121 sees a label printer
 #   update            what ibp-kiosk-update last did (its status file)
+#   battery           the charge and, on battery, about how long it will last
+#                     (from sysfs); prints nothing on a machine with no battery
 #
 # For testing: IBP_SERVER_URL, IBP_KIOSK_PRINT_SERVER_URL, IBP_KIOSK_SYS and
 # IBP_KIOSK_DEV override the server, print server, /sys and /dev.
@@ -163,14 +165,92 @@ check_update() {
     esac
 }
 
+# A whole number from a sysfs file, without its sign; nothing if the file is
+# missing or holds anything else.
+sys_number() {
+    sed -n '1s/^-\{0,1\}\([0-9][0-9]*\)$/\1/p' "$1" 2>/dev/null
+}
+
+# "about 2½ hours" for a number of minutes, rounded to what an estimate is
+# good for: half hours from an hour up, 10 minutes below that (the caller
+# never asks about less than 15).
+about_minutes() {
+    if [ "$1" -ge 53 ]; then
+        halves=$((($1 + 15) / 30))
+        hours=$((halves / 2))
+        if [ $((halves % 2)) -eq 1 ]; then
+            echo "about $hours½ hours"
+        elif [ "$hours" -eq 1 ]; then
+            echo "about 1 hour"
+        else
+            echo "about $hours hours"
+        fi
+    else
+        echo "about $((($1 + 5) / 10 * 10)) minutes"
+    fi
+}
+
+# At or below this charge, or with under 15 minutes left, the chip turns red
+# on battery.
+BATTERY_LOW=20
+
+check_battery() {
+    bat=
+    for dir in "$SYS"/class/power_supply/*; do
+        [ "$(cat "$dir/type" 2>/dev/null)" = Battery ] || continue
+        [ "$(cat "$dir/present" 2>/dev/null)" = 0 ] && continue
+        # scope "Device" is the battery of a wireless mouse or keyboard.
+        [ "$(cat "$dir/scope" 2>/dev/null)" = Device ] && continue
+        bat=$dir
+        break
+    done
+    # No battery: fine, and nothing to say (the launcher hides the chip).
+    [ -n "$bat" ] || exit 0
+
+    # Batteries count in charge (µAh, with current in µA) or in energy
+    # (µWh, with power in µW).
+    now=$(sys_number "$bat/charge_now") full=$(sys_number "$bat/charge_full")
+    rate=$(sys_number "$bat/current_avg")
+    [ "${rate:-0}" -gt 0 ] || rate=$(sys_number "$bat/current_now")
+    if [ -z "$now" ]; then
+        now=$(sys_number "$bat/energy_now") full=$(sys_number "$bat/energy_full")
+        rate=$(sys_number "$bat/power_now")
+    fi
+    percent=$(sys_number "$bat/capacity")
+    if [ -z "$percent" ] && [ -n "$now" ] && [ "${full:-0}" -gt 0 ]; then
+        percent=$((now * 100 / full))
+    fi
+    [ -n "$percent" ] || say "Can't read the battery" 1
+    [ "$percent" -gt 100 ] && percent=100
+
+    case $(cat "$bat/status" 2>/dev/null) in
+    Discharging) ;;
+    Charging) say "Charging ($percent%)" 0 ;;
+    *) say "Plugged in ($percent%)" 0 ;;
+    esac
+    # No estimate without a reading, or from one too small to trust (just
+    # after the charger is unplugged the average current is still near zero).
+    minutes=
+    if [ -n "$now" ] && [ "${rate:-0}" -gt 0 ]; then
+        minutes=$((now * 60 / rate))
+        [ "$minutes" -le 720 ] || minutes=
+    fi
+    if [ "$percent" -le "$BATTERY_LOW" ] || [ "${minutes:-99}" -lt 15 ]; then
+        say "$percent%, plug in the charger" 1
+    fi
+    [ -n "$minutes" ] && say "$percent%, $(about_minutes "$minutes") left" 0
+    say "$percent%, not plugged in" 0
+}
+
 case ${1:-} in
 network) check_network ;;
 server) check_server ;;
 printer-shipping) check_printer_shipping ;;
 printer-package) check_printer_package ;;
 update) check_update ;;
+battery) check_battery ;;
 *)
-    echo "usage: ibp-kiosk-status network|server|printer-shipping|printer-package|update" >&2
+    echo "usage: ibp-kiosk-status network|server|printer-shipping|printer-package|update|battery" >&2
     exit 2
     ;;
 esac
