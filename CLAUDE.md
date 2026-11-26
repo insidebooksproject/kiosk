@@ -198,6 +198,12 @@ disks stay empty). That run predates the 2026-11-25 changes (Firefox as an
 ordinary window, the title bars, the IBP Packages tile, the status chips,
 the boot updater); this file records no test of them.
 
+Tested in the VM 2026-11-26 (Firefox ESR 153.7): Firefox forgets a
+volunteer's cookies, site storage and history after a clean close, after
+SIGTERM (what the Home key sends) and after SIGKILL, and the next start's
+first request carries no old cookie; the extension's storage is unchanged;
+the Book Portal tile still reaches the ID.me sign-in.
+
 Not tested: any real hardware (PM-2411-BT and DYMO printers, Wi-Fi, the Acer
 laptops, the Chromebook's 2 GB); the IBP Requests page itself (the server
 isn't reachable from the VM); the `intake` and `portal` profiles; the print
@@ -242,9 +248,9 @@ shippy-gui's config on the machine has the real Google Maps key (Bitwarden
 `Google Maps API (IBP)`, set by hand 2026-11-25); its IBP and EasyPost keys
 and all of shippy's are still placeholders.
 
-**Next step: wipe the stick (it holds the Wi-Fi passwords, the Tailscale key
-and the admin password hash). Not yet checked on it: the label printer and
-the Broadcom driver step's log.**
+Closing the lid shuts it down (checked 2026-11-26). Not yet checked on it:
+the label printer and the Broadcom driver step's log. The stick still holds
+the Wi-Fi passwords, the Tailscale key and the admin password hash.
 
 The stick (the 14.6 GB USB flash drive, rewritten 2026-11-25 from `main` at
 `685e362`): profile `shipping`, hostname `ibp-bilbo` (the first stick, and
