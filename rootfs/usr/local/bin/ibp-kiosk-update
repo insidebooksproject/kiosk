@@ -48,10 +48,18 @@ status() {
 # tty8, switched to, because the end of the kiosk session clears tty1.
 if [ "${1:-}" = stop ]; then
     [ -n "${MAINPID:-}" ] || exit 0
-    [ "$(systemctl is-system-running)" = stopping ] || exit 0
     state=
     read -r state _ 2>/dev/null <"$STATE/status"
-    [ "$state" = updating ] || exit 0
+    if [ "$state" != updating ]; then
+        # Still checking (perhaps retrying with no network): nothing to
+        # finish, so end it now instead of holding up the stop. systemctl
+        # kill signals this process too.
+        log "stopped while checking"
+        trap '' TERM
+        systemctl kill --signal=TERM ibp-kiosk-update.service
+        exit 0
+    fi
+    [ "$(systemctl is-system-running)" = stopping ] || exit 0
     log "shutting down during an update: waiting for it to finish"
     printf '\033[2J\033[H\n  %s\n' \
         "Finishing an update, please wait. Don't turn the computer off." \

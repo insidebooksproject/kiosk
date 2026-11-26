@@ -163,9 +163,10 @@ version running and is tried again at the next boot; with no network
 nothing happens ("Could not check (no internet?)"). Shutting down or
 restarting while `setup.sh` runs waits for it, up to 2 minutes, with
 "Finishing an update, please wait. Don't turn the computer off." on the
-screen; an update cut off after that is redone at the next boot.
-`/etc/ibp-kiosk/update.conf` can set `UPDATE_BRANCH` (empty: no updates)
-and `UPDATE_URL`. How to release: `CLAUDE.md`, "Releasing".
+screen; an update cut off after that is redone at the next boot. While it
+is only checking, a shutdown doesn't wait. `/etc/ibp-kiosk/update.conf`
+can set `UPDATE_BRANCH` (empty: no updates) and `UPDATE_URL`. How to
+release: `CLAUDE.md`, "Releasing".
 
 The apps (shippy, shippy-gui, ibp-printing) update separately, from their
 own `deploy` branches, each time they start (`docs/apps.md`).
