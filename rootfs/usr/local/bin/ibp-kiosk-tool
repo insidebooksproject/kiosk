@@ -17,10 +17,9 @@
 #
 # TOOL is one of:
 #   shippy               shippy (CLI)
-#   shippy-gui           shippy-gui, without the `linux` extra (no pycups)
+#   shippy-gui           shippy-gui
 #   ibp-printing         ibp-printing[watcher]: ibp-label-watcher, ibp-print-diag
-#   ibp-printing-server  ibp-printing[linux]: ibp-print-server (needs a
-#                        compiler and libcups2-dev to build pycups)
+#   ibp-printing-server  ibp-printing: ibp-print-server
 #
 # --no-upgrade    run the installed version (install it only if missing)
 # --install-only  install or upgrade, then exit (setup.d, the print server's
@@ -68,7 +67,7 @@ ibp-printing)
     spec="ibp-printing[watcher] @ git+$GITHUB/printing.git@deploy" ;;
 ibp-printing-server)
     name=ibp-printing label="the print server (ibp-printing)"
-    spec="ibp-printing[linux] @ git+$GITHUB/printing.git@deploy" ;;
+    spec="ibp-printing @ git+$GITHUB/printing.git@deploy" ;;
 *)
     die "ibp-kiosk-tool: unknown tool '$key'" ;;
 esac

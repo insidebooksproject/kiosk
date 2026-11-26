@@ -1,8 +1,8 @@
 # The apps every station can run (Debian 13 trixie names). Packages only
 # some features need are installed by their setup.d step instead:
 # 50-apps.sh (git, and uv from Astral), 60-shipping.sh (cifs-utils,
-# cups-client, the PySide6 wheel's system libraries), 70-package-printer.sh
-# (CUPS, the DYMO driver, a compiler for pycups).
+# the PySide6 wheel's system libraries), 70-package-printer.sh (CUPS, for
+# printing the label PDF from Firefox).
 
 # The browser tiles (Book Portal, IBP Requests, IBP Packages)
 firefox-esr

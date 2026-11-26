@@ -126,9 +126,11 @@ last lines of the app's output instead of silently returning to the tiles.
   Linux on 2026-10-04 (the printing repo's `docs/printers/pm2411bt.md`). The
   image's own udev rule lets the `kiosk` user open the device (a group, not
   the upstream rule's `uaccess`; `docs/apps.md` says why).
-- **Package labels (DYMO LabelWriter 450 Turbo).** CUPS and
-  `ibp-print-server` as a systemd unit, as on `ibp-label-printer` today,
+- **Package labels (DYMO LabelWriter 450 Turbo).** `ibp-print-server` as a
+  systemd unit, printing to the DYMO directly over USB as on the intake
+  station (`ibp-samwise`, formerly `ibp-label-printer`) since 2026-11-26,
   only on stations with feature `package-printer` (the intake profile).
+  CUPS stays installed there only for printing the label PDF from Firefox.
 - **Label watcher.** `ibp-label-watcher` runs as a systemd user service for
   the `kiosk` user, retrying labels the apps could not print. It replaces the
   "IBP Label Watcher" scheduled task.
