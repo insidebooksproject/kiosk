@@ -231,11 +231,20 @@ workspace's `BACKLOG.md` (the `meta` repo).
 
 ### MacBook `ibp-bilbo` (model A1278)
 
-**Next step: fit the replacement hard-drive flex cable (`821-1480-A`, on
-order), reinstall from the stick with no extra boot options, then check it
-over SSH (`ibp@ibp-bilbo.local`). Then fill in this section and wipe the
-stick (it holds the Wi-Fi passwords, the Tailscale key and the admin
-password hash).**
+Reinstalled from the stick 2026-11-25 and checked over SSH
+(`ibp@ibp-bilbo.local`): `product_name` is `MacBookPro9,2`, Ethernet and
+Wi-Fi are both up, it joined the IBP tailnet as `ibp-bilbo`, and the boot
+updater brought it to the current `deploy`. It is at jstarr's home, where
+neither the server's LAN address nor its tailnet address (still the personal
+tailnet) is reachable, so the IBP server chip says "Not reachable" until
+`ibp-server` moves to the IBP tailnet (the workspace's `BACKLOG.md`).
+shippy-gui's config on the machine has the real Google Maps key (Bitwarden
+`Google Maps API (IBP)`, set by hand 2026-11-25); its IBP and EasyPost keys
+and all of shippy's are still placeholders.
+
+**Next step: wipe the stick (it holds the Wi-Fi passwords, the Tailscale key
+and the admin password hash). Not yet checked on it: the label printer and
+the Broadcom driver step's log.**
 
 The stick (the 14.6 GB USB flash drive, rewritten 2026-11-25 from `main` at
 `685e362`): profile `shipping`, hostname `ibp-bilbo` (the first stick, and
@@ -262,6 +271,7 @@ after the cable.
 The model: the serial's model code (DTY3) reads as the 13-inch Mid 2012
 MacBook Pro (MacBookPro9,2: Intel HD 4000 graphics, Intel SATA and xHCI,
 matching the installer's logs); confirm with
-`cat /sys/class/dmi/id/product_name`. RAM and Wi-Fi chip are still unknown.
+`cat /sys/class/dmi/id/product_name` (confirmed 2026-11-25). RAM and Wi-Fi
+chip are still unknown.
 The Broadcom `wl` driver step (`setup.d/30-broadcom.sh`) built in the VM
 with `KIOSK_TEST_BROADCOM_STA=1` but has not run on the hardware.
