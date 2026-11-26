@@ -13,8 +13,8 @@
 # After the base system, it sources setup.d/*.sh in order with KIOSK_SRC,
 # KIOSK_SECRETS, KIOSK_FEATURES and has_feature (CLAUDE.md), plus
 # KIOSK_PROFILE and KIOSK_LIVE (1 when running on the live system rather
-# than in the installer). A step must not call exit, and must be safe to
-# rerun.
+# than in the installer), and the functions shutting_down and
+# live_systemctl. A step must not call exit, and must be safe to rerun.
 set -eu
 
 KIOSK_SRC=$(cd "$(dirname "$0")" && pwd)
@@ -61,6 +61,32 @@ if [ -d /run/systemd/system ] &&
     KIOSK_LIVE=1
 fi
 export KIOSK_SRC KIOSK_SECRETS KIOSK_PROFILE KIOSK_FEATURES KIOSK_LIVE
+
+# shutting_down: true once a shutdown or restart has begun. The boot updater
+# runs this script, and a shutdown waits for it (ibp-kiosk-update.service),
+# so a step must never wait on systemd then: its job would queue behind the
+# shutdown, which is waiting for the step, and neither would finish.
+shutting_down() {
+    [ "$(systemctl is-system-running 2>/dev/null)" = stopping ]
+}
+
+# live_systemctl ARGS...: systemctl for a step's changes to the running
+# system. It queues the job and returns (--no-block; daemon-reload, which
+# queues no job, still runs to the end), and does nothing once the system
+# is shutting down: the next boot starts everything with the new files.
+live_systemctl() {
+    if shutting_down; then
+        echo "ibp-kiosk: shutting down; skipped systemctl $*"
+        return 0
+    fi
+    case " $* " in
+        *" daemon-reload "*) ;;
+        *) set -- --no-block "$@" ;;
+    esac
+    systemctl "$@" && return 0
+    shutting_down || return 1
+    echo "ibp-kiosk: shutting down; systemctl $* did not go through"
+}
 export DEBIAN_FRONTEND=noninteractive
 umask 022
 echo "ibp-kiosk: setting up profile $KIOSK_PROFILE (features: ${KIOSK_FEATURES:-none})"
@@ -91,8 +117,8 @@ apt-get install -y --no-install-recommends $packages tailscale
 # --- Files ------------------------------------------------------------------
 # Laid out by absolute path. Modes are set here rather than copied, since
 # build.sh stages everything owner-only: directories 0755, files 0644,
-# usr/local/bin 0755. A file that needs another mode or owner gets it in the
-# setup.d step that owns it.
+# usr/local/bin and usr/sbin/policy-rc.d 0755. A file that needs another mode
+# or owner gets it in the setup.d step that owns it.
 # --remove-destination: a script that is running (ibp-kiosk-update runs this
 # on a live station) keeps its old file rather than have it change under it.
 cp -r --remove-destination --no-preserve=mode,ownership "$KIOSK_SRC/rootfs/." /
@@ -101,7 +127,7 @@ cp -r --remove-destination --no-preserve=mode,ownership "$KIOSK_SRC/rootfs/." /
 done
 (cd "$KIOSK_SRC/rootfs" && find . -type f) | while read -r f; do
     case "$f" in
-        ./usr/local/bin/*) chmod 755 "/${f#./}" ;;
+        ./usr/local/bin/* | ./usr/sbin/policy-rc.d) chmod 755 "/${f#./}" ;;
         *) chmod 644 "/${f#./}" ;;
     esac
 done

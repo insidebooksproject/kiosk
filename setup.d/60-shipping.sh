@@ -91,20 +91,20 @@ else
 fi
 
 if [ -n "$KIOSK_LIVE" ]; then
-    systemctl daemon-reload
+    live_systemctl daemon-reload
     udevadm control --reload || true
     udevadm trigger --subsystem-match=usbmisc --subsystem-match=usb || true
     if systemctl is-enabled --quiet ibp-kiosk-log-upload.timer; then
-        systemctl restart ibp-kiosk-log-upload.timer
+        live_systemctl restart ibp-kiosk-log-upload.timer
     else
-        systemctl stop ibp-kiosk-log-upload.timer
+        live_systemctl stop ibp-kiosk-log-upload.timer
     fi
     # The watcher runs in kiosk's user manager, if kiosk is logged in.
-    if systemctl --user -M kiosk@ daemon-reload 2>/dev/null; then
+    if ! shutting_down && systemctl --user -M kiosk@ daemon-reload 2>/dev/null; then
         if has_feature shipping; then
-            systemctl --user -M kiosk@ restart ibp-kiosk-label-watcher.service || true
+            live_systemctl --user -M kiosk@ restart ibp-kiosk-label-watcher.service || true
         else
-            systemctl --user -M kiosk@ stop ibp-kiosk-label-watcher.service || true
+            live_systemctl --user -M kiosk@ stop ibp-kiosk-label-watcher.service || true
         fi
     fi
 fi
