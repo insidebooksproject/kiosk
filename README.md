@@ -30,7 +30,7 @@ in [`docs/design.md`](docs/design.md).
 |---|---|---|
 | `shipping` | Ship Individual, Ship Bulk, Ship Manual, TDCJ Book Portal, IBP Requests, IBP Packages | `shipping`: shippy, shippy-gui, the PM-2411-BT label printer, log upload |
 | `intake` | IBP Requests | `package-printer`: CUPS and the DYMO print server |
-| `portal` | TDCJ Book Portal, opened at boot | `low-memory`: Firefox settings for the 2 GB Chromebook |
+| `portal` | TDCJ Book Portal | `low-memory`: Firefox settings for the 2 GB Chromebook |
 
 Each is `profiles/<name>/profile.conf` (installed as
 `/etc/ibp-kiosk/profile.conf`) and `station.toml` (the tiles, status strip
