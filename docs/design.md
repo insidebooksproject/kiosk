@@ -76,7 +76,7 @@ again when the child exits.
 **labwc**, not cage. The predecessor used cage, which is enough for one app
 that never closes, but a multi-app station needs:
 
-- **A Home key.** labwc binds a key (Super, with a sticker on it; F12 too)
+- **A Home key.** labwc binds a key (Super, with a sticker on it)
   to a command that closes the running app and returns to the launcher.
 - **Title bars where they help.** labwc is a normal stacking compositor:
   window rules keep main windows maximized and undecorated, give the

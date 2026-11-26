@@ -53,7 +53,7 @@ this one grew from.
 |---|---|
 | `ibp-kiosk-session` | Started from the `kiosk` login on tty1; runs labwc, which starts the launcher |
 | `ibp-kiosk-launcher` | Runs the launcher (`python3 -m ibp_kiosk`) |
-| `ibp-kiosk-launcher home` | Tells the running launcher to close the current app and show the tiles. labwc binds Super and F12 to it |
+| `ibp-kiosk-launcher home` | Tells the running launcher to close the current app and show the tiles. labwc binds Super to it |
 | `ibp-kiosk-app portal` | Firefox on the TDCJ Book Portal, own profile: an ordinary window with tabs (not kiosk mode) whose close button returns to the tiles |
 | `ibp-kiosk-app requests` | The same on the IBP frontend, own profile |
 | `ibp-kiosk-app packages` | The same on the IBP frontend's packages page (`/packages`), in the `requests` profile |
@@ -106,7 +106,7 @@ names no tile is an error (the launcher shows a config-error screen).
 - **Home.** The launcher holds a lock on
   `$XDG_RUNTIME_DIR/ibp-kiosk/launcher.pid`; `ibp-kiosk-launcher home` sends
   that pid SIGUSR1 and exits 0 if there is no launcher. labwc binds Super
-  (either side, pressed alone) and F12 to it, so no app ever receives F12.
+  (either side, pressed alone) to it.
 - **Admin screen:** Ctrl+Alt+A, only when no app is running. labwc must not
   bind it.
 - **Failure screen:** shown when an app exits non-zero or within 3 seconds,
@@ -191,8 +191,8 @@ Tested in the QEMU VM (`KIOSK_TEST=1 ./build.sh`, `./test-vm.sh install`,
 NVMe disk; boot into the launcher; the Book Portal tile (reaches the ID.me
 sign-in); Ship Individual and Ship Bulk (shippy in foot, reports no printer);
 Ship Manual (shippy-gui maximized, its Settings dialog as a dialog); the Home
-key (Super and F12); the admin screen and `nmtui`; the label watcher service;
-the power button; a reboot; and the installer's refusal with two internal
+key (Super); the admin screen and `nmtui`; the label watcher service; the
+power button; a reboot; and the installer's refusal with two internal
 disks (`./test-vm.sh install --two-disks`: it waits at partitioning and both
 disks stay empty). That run predates the 2026-11-25 changes (Firefox as an
 ordinary window, the title bars, the IBP Packages tile, the status chips,

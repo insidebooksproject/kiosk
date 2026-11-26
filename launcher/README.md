@@ -40,7 +40,7 @@ Options: `--config PATH` (or `IBP_KIOSK_CONFIG`; default
 | 1 to 9 | Start the tile with that number |
 | Ctrl+Alt+A | Admin screen (not while an app runs): hostname, IP addresses, version, `[[admin]]` tiles |
 | Esc | Leave the admin, failure or confirm screen |
-| `ibp-kiosk-launcher home` | Bound to Super and F12 by labwc: close the app, show the tiles |
+| `ibp-kiosk-launcher home` | Bound to Super by labwc: close the app, show the tiles |
 
 ## How it behaves
 
