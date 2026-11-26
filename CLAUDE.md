@@ -259,6 +259,18 @@ sign a station in interactively: an untagged machine belongs to the person
 and gets admin access. The move of the existing hosts is in the IBP
 workspace's `BACKLOG.md` (the `meta` repo).
 
+### Chromebook `ibp-frodo`
+
+The 2 GB Chromebook that ran the old Book Portal kiosk. Not installed yet.
+The 14.6 GB USB flash drive holds its installer (written 2026-11-26 from
+`main` at `5b46eb4`, checked against the ISO): profile `portal`, hostname
+`ibp-frodo`, the same two Wi-Fi profiles, admin password and tailnet
+station key as `ibp-bilbo`'s stick, so the stick holds those secrets. A test
+build of the same commit and profile was installed in the VM with 2 GB the
+same day: it boots straight to the Book Portal's ID.me sign-in with the bar
+on top, about 900 MB used with Firefox open and no swap. Nothing is known
+yet about the Chromebook's own Wi-Fi and graphics under this image.
+
 ### MacBook `ibp-bilbo` (model A1278)
 
 Reinstalled from the stick 2026-11-25 and checked over SSH
@@ -276,8 +288,9 @@ Closing the lid shuts it down (checked 2026-11-26). Not yet checked on it:
 the label printer and the Broadcom driver step's log. The stick still holds
 the Wi-Fi passwords, the Tailscale key and the admin password hash.
 
-The stick (the 14.6 GB USB flash drive, rewritten 2026-11-25 from `main` at
-`685e362`): profile `shipping`, hostname `ibp-bilbo` (the first stick, and
+Its install stick (the 14.6 GB USB flash drive as written 2026-11-25 from
+`main` at `685e362`; since rewritten for `ibp-frodo`, below): profile
+`shipping`, hostname `ibp-bilbo` (the first stick, and
 the 2026-11-24 install, called the machine `ibp-april`); Wi-Fi profiles
 `ibp-wifi` (home 2.4 GHz, Bitwarden `Home WIFI 2.4G`) and `ibp-site-wifi`
 (Bitwarden `IBP WIFI`); the `ibp` admin password is Bitwarden `ibp-kiosk`;
