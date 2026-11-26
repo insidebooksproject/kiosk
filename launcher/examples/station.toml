@@ -48,6 +48,12 @@ label = "Slow check"
 command = ["sleep", "30"]
 interval = 30
 
+[[status]]
+label = "Battery"
+command = ["sh", "-c", "echo '86%, about 2½ hours left'"]
+interval = 30
+show_text = true
+
 [[admin]]
 id = "admin-terminal"
 label = "Terminal"
