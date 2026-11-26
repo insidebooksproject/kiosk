@@ -11,6 +11,9 @@
 #                     usable (from sysfs only: the printer allows one open at a
 #                     time and shippy may be printing, so it is never opened)
 #   printer-package   the print server on localhost:40121 sees a label printer
+#   printers          both printer checks as one: fine when a printer is ready
+#                     and neither check found a problem (the launcher's strip
+#                     shows this one; the two above are for diagnosis)
 #   update            what ibp-kiosk-update last did (its status file)
 #   battery           the charge and, on battery, about how long it will last
 #                     (from sysfs); prints nothing on a machine with no battery
@@ -155,6 +158,28 @@ check_printer_package() {
     esac
 }
 
+# Both printers as one chip. "Not plugged in" from one check is not a
+# problem while the other printer is ready; any other failure is.
+check_printers() {
+    ship=$(check_printer_shipping) && ship_ok=yes || ship_ok=no
+    pkg=$(check_printer_package) && pkg_ok=yes || pkg_ok=no
+    if [ "$ship_ok" = no ] && [ "$ship" != "Not plugged in" ]; then
+        say "Shipping printer: $ship" 1
+    fi
+    if [ "$pkg_ok" = no ] && [ "$pkg" != "Not plugged in" ]; then
+        say "Package printer: $pkg" 1
+    fi
+    # "Ready (BOB)" reads "Shipping printer ready (BOB)".
+    ship=$(printf '%s' "$ship" | sed 's/^Ready/ready/')
+    pkg=$(printf '%s' "$pkg" | sed 's/^Ready/ready/')
+    if [ "$ship_ok" = yes ] && [ "$pkg_ok" = yes ]; then
+        say "Shipping printer $ship, package printer $pkg" 0
+    fi
+    [ "$ship_ok" = yes ] && say "Shipping printer $ship" 0
+    [ "$pkg_ok" = yes ] && say "Package printer $pkg" 0
+    say "Not plugged in" 1
+}
+
 check_update() {
     file=${IBP_KIOSK_UPDATE_STATE:-/var/lib/ibp-kiosk/update}/status
     [ -r "$file" ] || say "Not checked yet" 0
@@ -247,10 +272,11 @@ network) check_network ;;
 server) check_server ;;
 printer-shipping) check_printer_shipping ;;
 printer-package) check_printer_package ;;
+printers) check_printers ;;
 update) check_update ;;
 battery) check_battery ;;
 *)
-    echo "usage: ibp-kiosk-status network|server|printer-shipping|printer-package|update|battery" >&2
+    echo "usage: ibp-kiosk-status network|server|printer-shipping|printer-package|printers|update|battery" >&2
     exit 2
     ;;
 esac

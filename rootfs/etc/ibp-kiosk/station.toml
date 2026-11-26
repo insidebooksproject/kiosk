@@ -46,12 +46,8 @@ label = "IBP server"
 command = ["ibp-kiosk-status", "server"]
 
 [[status]]
-label = "Label printer"
-command = ["ibp-kiosk-status", "printer-shipping"]
-
-[[status]]
-label = "Package printer"
-command = ["ibp-kiosk-status", "printer-package"]
+label = "Printer"
+command = ["ibp-kiosk-status", "printers"]
 
 [[status]]
 label = "Updates"

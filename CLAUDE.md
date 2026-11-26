@@ -68,7 +68,7 @@ this one grew from.
 | `ibp-kiosk-log-upload` | Copies the label-printer logs to the station's Samba share; run by `ibp-kiosk-log-upload.timer` |
 | `ibp-kiosk-update` | Run as root by `ibp-kiosk-update.service` at boot: when the `deploy` branch of this repo has moved, clones it and runs its `setup.sh`; state in `/var/lib/ibp-kiosk/update` (`commit`, `src`, `status`) |
 | `ibp-kiosk-update stop` | The unit's `ExecStop=`: ends a run that is still checking; at a shutdown during `setup.sh`, shows "Finishing an update" on tty8 while the shutdown waits (up to 2 minutes) |
-| `ibp-kiosk-status network\|server\|printer-shipping\|printer-package\|update\|battery` | One status check: exit 0 = fine, non-zero = problem; first line of stdout is a short text for the volunteer (`battery` prints nothing on a machine with no battery) |
+| `ibp-kiosk-status network\|server\|printer-shipping\|printer-package\|printers\|update\|battery` | One status check (`printers` is both printer checks as one, the one the strip shows): exit 0 = fine, non-zero = problem; first line of stdout is a short text for the volunteer (`battery` prints nothing on a machine with no battery) |
 
 `ibp-kiosk-app` runs in the foreground and exits when the app closes; its
 exit status and its stderr/stdout are what the launcher shows on a failure.
@@ -90,8 +90,8 @@ description = "Mail a package to one inmate"   # optional, small text
 command = ["ibp-kiosk-app", "ship-individual"]
 
 [[status]]                   # status strip, left to right
-label = "Label printer"
-command = ["ibp-kiosk-status", "printer-shipping"]
+label = "Printer"
+command = ["ibp-kiosk-status", "printers"]
 interval = 15                # seconds between checks (default 15)
 
 [[admin]]                    # admin screen entries, same keys as [[tile]]
@@ -239,9 +239,9 @@ upload to the real share; Tailscale join. `docs/apps.md` has the apps' own
 "Not verified" list and `docs/design.md` the rollout.
 
 The removal of profiles (`201d796`) was tested in the VM 2026-11-26 at
-2 GB: a fresh install shows all six tiles and five status chips, with the
-print server, CUPS and the label watcher running and the low-memory prefs
-installed; with the Book Portal open, 1.1 GB used and 870 MB available. An
+2 GB: a fresh install shows all six tiles and five status chips (then one
+per printer; one "Printer" chip since), with the print server, CUPS and the
+label watcher running and the low-memory prefs installed; with the Book Portal open, 1.1 GB used and 870 MB available. An
 old `portal` install (`e62aa7d`) updated by its boot updater from a local
 `main` in 32 s, removed `profile.conf`, and came back with every tile. A
 reboot at the end of a rerun shut down in 2 s; a reboot during the first,

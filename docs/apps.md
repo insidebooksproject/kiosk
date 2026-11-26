@@ -268,6 +268,7 @@ don't repeat the label.
 | `server` | `GET http://192.168.1.156/api/health` (3 s connect, 4 s total) | "OK", "Not reachable", "Database problem" (503), "Error (N)" |
 | `printer-shipping` | sysfs only: each `/sys/class/usbmisc/lp*` whose `device/ieee1284_id` has `MDL:PM2411BT` (or `MODEL:`, any case) or whose USB device is `2e3c:5760`; then whether `/dev/usb/lpN` exists and is read-write for the caller (`access()`, no open). Falls back to `/sys/bus/usb/devices` for a printer not bound to usblp | "Ready (BOB)" / "(BETTY)" by serial, "Plugged in, but not allowed (udev rule missing?)", "Plugged in, but not detected (try replugging it)", "Not plugged in" |
 | `printer-package` | `GET http://localhost:40121/health` (the print server's own discovery: a usable label printer queue) | "Ready", "Not plugged in", "Problem (see the print server log)", "Print server not running" |
+| `printers` | both checks above; the strip's one printer chip. A problem when either check fails with anything but "Not plugged in", or when neither printer is ready | "Shipping printer ready (BOB)", "Package printer ready", "Shipping printer ready (BOB), package printer ready", "Shipping printer: Plugged in, but not allowed (udev rule missing?)", "Package printer: Print server not running", "Not plugged in" |
 | `update` | the first word and the text of `/var/lib/ibp-kiosk/update/status`, written by `ibp-kiosk-update` (each run first writes "Checking…", so no text is left over from the last boot); a problem only for `failed` | "Not checked yet", "Checking…", "Up to date", "Updating…", "Updated (restart to finish)", "Could not check (no internet?)", "Off on this machine", "Update failed (tell an IBP admin)" |
 | `battery` | sysfs only: the first `/sys/class/power_supply/*` of type `Battery` that is present and isn't a mouse's or keyboard's (`scope` `Device`). The charge is `capacity`; the time left is `charge_now` over `current_avg` (or `current_now`), or `energy_now` over `power_now`, shown when it is 12 hours or less. A problem on battery at 20% or less, or with under 15 minutes left | "Plugged in (86%)", "Charging (40%)", "86%, about 2½ hours left", "25%, about 40 minutes left", "86%, not plugged in" (no estimate yet), "15%, plug in the charger", "Can't be read"; nothing at all with no battery |
 
@@ -418,6 +419,9 @@ is in `CLAUDE.md`, "State"):
   running), `printer-shipping` against a fake sysfs tree (no printer, DYMO
   only, PM2411BT without node, without access, ready as BOB and BETTY,
   model by 1284 `MODEL:` in lower case, plugged in but not bound to usblp).
+- `ibp-kiosk-status printers` (2026-11-26) against the same fakes: neither
+  printer, either one, both, and a problem with each while the other is
+  ready.
 - `ibp-kiosk-status battery` (2026-11-26) against fake sysfs trees (no
   battery, mains only, a mouse's battery, not present, full, charging, on
   battery by charge and by energy, a negative current, no current reading
