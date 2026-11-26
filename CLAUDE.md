@@ -66,6 +66,7 @@ this one grew from.
 | `ibp-kiosk-tool TOOL COMMAND` | Installs or upgrades shippy, shippy-gui or ibp-printing from its `deploy` branch as a uv tool, then runs COMMAND (`docs/apps.md`) |
 | `ibp-kiosk-log-upload` | Copies the label-printer logs to the station's Samba share; run by `ibp-kiosk-log-upload.timer` |
 | `ibp-kiosk-update` | Run as root by `ibp-kiosk-update.service` at boot: when the `deploy` branch of this repo has moved, clones it and runs its `setup.sh`; state in `/var/lib/ibp-kiosk/update` (`commit`, `src`, `status`) |
+| `ibp-kiosk-update stop` | The unit's `ExecStop=`: ends a run that is still checking; at a shutdown during `setup.sh`, shows "Finishing an update" on tty8 while the shutdown waits (up to 2 minutes) |
 | `ibp-kiosk-status network\|server\|printer-shipping\|printer-package\|update\|battery` | One status check: exit 0 = fine, non-zero = problem; first line of stdout is a short text for the volunteer (`battery` prints nothing on a machine with no battery) |
 
 `ibp-kiosk-app` runs in the foreground and exits when the app closes; its
@@ -169,7 +170,8 @@ merge into `main`, try it in the VM (`UPDATE_URL` in the VM's
 `deploy` to `main` (`git push origin main:deploy`). `setup.sh` and every
 `setup.d` step must stay safe to rerun on a live station with no secrets
 directory, and must not restart the session. A failed run keeps the old
-commit recorded and is retried at the next boot.
+commit recorded and is retried at the next boot, and so does one a
+shutdown cuts off (a shutdown waits 2 minutes for `setup.sh`).
 
 ## Rules
 
@@ -214,6 +216,18 @@ SIGTERM (what the Home key sends) and after SIGKILL, and the next start's
 first request carries no old cookie; the extension's storage is unchanged;
 the Book Portal tile still reaches the ID.me sign-in.
 
+The boot updater's shutdown wait and status texts were tested in the VM
+2026-11-26 (`portal` profile, 2 GB, a local `deploy` branch whose
+`setup.sh` only sleeps): the Updates chip goes "Checking…", "Updating…",
+"Updated (restart to finish)", or "Checking…" then "Could not check (no
+internet?)" with the source unreachable. A reboot during `setup.sh` showed
+"Finishing an update, please wait. Don't turn the computer off." on tty8
+within 4 seconds and until the reboot; it waited until `setup.sh` ended
+(40 s), or 2 min 1 s before killing one that ran on, and the next boot
+redid that update. A reboot while checking took under a second, and
+neither a plain reboot nor an update ending while the system runs shows
+anything. Not seen on real hardware (the switch to tty8 on Intel graphics).
+
 Not tested: any real hardware (PM-2411-BT and DYMO printers, Wi-Fi, the Acer
 laptops, the Chromebook's 2 GB); the IBP Requests page itself (the server
 isn't reachable from the VM); the `intake` and `portal` profiles; the print
@@ -245,6 +259,18 @@ sign a station in interactively: an untagged machine belongs to the person
 and gets admin access. The move of the existing hosts is in the IBP
 workspace's `BACKLOG.md` (the `meta` repo).
 
+### Chromebook `ibp-frodo`
+
+The 2 GB Chromebook that ran the old Book Portal kiosk. Not installed yet.
+The 14.6 GB USB flash drive holds its installer (written 2026-11-26 from
+`main` at `5b46eb4`, checked against the ISO): profile `portal`, hostname
+`ibp-frodo`, the same two Wi-Fi profiles, admin password and tailnet
+station key as `ibp-bilbo`'s stick, so the stick holds those secrets. A test
+build of the same commit and profile was installed in the VM with 2 GB the
+same day: it boots straight to the Book Portal's ID.me sign-in with the bar
+on top, about 900 MB used with Firefox open and no swap. Nothing is known
+yet about the Chromebook's own Wi-Fi and graphics under this image.
+
 ### MacBook `ibp-bilbo` (model A1278)
 
 Reinstalled from the stick 2026-11-25 and checked over SSH
@@ -262,8 +288,9 @@ Closing the lid shuts it down (checked 2026-11-26). Not yet checked on it:
 the label printer and the Broadcom driver step's log. The stick still holds
 the Wi-Fi passwords, the Tailscale key and the admin password hash.
 
-The stick (the 14.6 GB USB flash drive, rewritten 2026-11-25 from `main` at
-`685e362`): profile `shipping`, hostname `ibp-bilbo` (the first stick, and
+Its install stick (the 14.6 GB USB flash drive as written 2026-11-25 from
+`main` at `685e362`; since rewritten for `ibp-frodo`, below): profile
+`shipping`, hostname `ibp-bilbo` (the first stick, and
 the 2026-11-24 install, called the machine `ibp-april`); Wi-Fi profiles
 `ibp-wifi` (home 2.4 GHz, Bitwarden `Home WIFI 2.4G`) and `ibp-site-wifi`
 (Bitwarden `IBP WIFI`); the `ibp` admin password is Bitwarden `ibp-kiosk`;

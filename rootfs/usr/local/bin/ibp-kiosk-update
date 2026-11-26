@@ -16,9 +16,11 @@
 # UPDATE_BRANCH; an empty UPDATE_BRANCH turns updates off (test builds).
 #
 # State, in /var/lib/ibp-kiosk/update: `commit` (the installed commit), `src`
-# (its checkout) and `status` ("ok|updating|failed TEXT", which
-# `ibp-kiosk-status update` shows). For testing, IBP_KIOSK_CONF_DIR and
-# IBP_KIOSK_UPDATE_STATE override the two directories.
+# (its checkout) and `status` ("ok|checking|updating|failed TEXT", which
+# `ibp-kiosk-status update` shows; each run first writes "checking", so the
+# text is never one left over from the last boot). For testing,
+# IBP_KIOSK_CONF_DIR and IBP_KIOSK_UPDATE_STATE override the two
+# directories.
 set -u
 umask 022
 
@@ -40,8 +42,34 @@ status() {
     printf '%s %s\n' "$1" "$2" >"$STATE/status.new" && mv "$STATE/status.new" "$STATE/status"
 }
 
+# `ibp-kiosk-update stop` is the unit's ExecStop=. systemd runs it whenever
+# the unit stops, also after the update has ended by itself (then MAINPID
+# is unset). A shutdown that has to wait for setup.sh says so on screen: on
+# tty8, switched to, because the end of the kiosk session clears tty1.
+if [ "${1:-}" = stop ]; then
+    [ -n "${MAINPID:-}" ] || exit 0
+    state=
+    read -r state _ 2>/dev/null <"$STATE/status"
+    if [ "$state" != updating ]; then
+        # Still checking (perhaps retrying with no network): nothing to
+        # finish, so end it now instead of holding up the stop. systemctl
+        # kill signals this process too.
+        log "stopped while checking"
+        trap '' TERM
+        systemctl kill --signal=TERM ibp-kiosk-update.service
+        exit 0
+    fi
+    [ "$(systemctl is-system-running)" = stopping ] || exit 0
+    log "shutting down during an update: waiting for it to finish"
+    printf '\033[2J\033[H\n  %s\n' \
+        "Finishing an update, please wait. Don't turn the computer off." \
+        >/dev/tty8 2>/dev/null && chvt 8
+    exit 0
+fi
+
 mkdir -p "$STATE" || exit 1
 chmod 755 "$STATE" "${STATE%/*}"
+status checking "Checking…"
 
 if [ -z "$UPDATE_BRANCH" ]; then
     log "updates are off (UPDATE_BRANCH is empty in $CONF_DIR/update.conf)"
@@ -59,6 +87,7 @@ while :; do
     tries=$((tries + 1))
     if [ "$tries" -ge 6 ]; then
         log "can't reach $UPDATE_URL ($UPDATE_BRANCH); keeping the installed version"
+        status ok "Could not check (no internet?)"
         exit 0
     fi
     sleep 20

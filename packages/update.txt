@@ -1,3 +1,5 @@
 # ibp-kiosk-update fetches the release branch with git over HTTPS
 git
 ca-certificates
+# chvt, to show the "Finishing an update" message at a shutdown
+kbd

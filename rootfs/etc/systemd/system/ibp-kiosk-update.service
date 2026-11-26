@@ -11,11 +11,15 @@ After=network-online.target
 # as an update takes.
 Type=exec
 ExecStart=/usr/local/bin/ibp-kiosk-update
-# A shutdown or restart during an update waits for it (up to 10 minutes)
+# A shutdown or restart during an update waits for it (up to 2 minutes)
 # instead of cutting apt off half-way: the stop "signal" is one that does
-# nothing.
+# nothing. ExecStop tells the volunteer so on screen (only then), and ends
+# a run that is still only checking. An update still running after 2
+# minutes is killed, is not recorded, and runs again at the next boot
+# (which first repairs dpkg).
+ExecStop=/usr/local/bin/ibp-kiosk-update stop
 KillSignal=SIGCONT
-TimeoutStopSec=10min
+TimeoutStopSec=2min
 
 [Install]
 WantedBy=multi-user.target
