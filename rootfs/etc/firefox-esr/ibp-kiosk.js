@@ -3,8 +3,8 @@
 // extension, lockdown) are in /usr/share/firefox-esr/distribution/policies.json.
 // policies.json also makes Firefox forget everything a volunteer did when it
 // closes (SanitizeOnShutdown). Each tile's start page is in its own
-// profile's user.js, written by ibp-kiosk-app. The 2 GB Chromebook also gets
-// ibp-kiosk-low-memory.js (feature low-memory).
+// profile's user.js, written by ibp-kiosk-app. A machine with under 3 GiB of
+// RAM (the 2 GB Chromebook) also gets ibp-kiosk-low-memory.js.
 
 // The launcher's Home key ends Firefox with SIGTERM (SIGKILL if it is slow),
 // and a power cut ends it with nothing. Either way, the next start just

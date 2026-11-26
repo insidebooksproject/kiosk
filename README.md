@@ -20,35 +20,25 @@ in [`docs/design.md`](docs/design.md).
   button, the station's name, the battery and the clock. On battery it
   shows the charge and about how long it will last, and turns red at 20%
   ("15%, plug in the charger").
-- **Profiles** decide what a machine shows and installs (below).
+- **Every machine is the same**: all six tiles, and both kinds of label
+  printer (the PM-2411-BT for shipping, the DYMO for package labels), so
+  any machine can be used for any task. The tiles, status strip and admin
+  screen are `rootfs/etc/ibp-kiosk/station.toml`.
 - Admin: the `ibp` user (sudo) over SSH (keys only), on the console
   (Ctrl+Alt+F2), and optionally on the tailnet.
 
-## Profiles
-
-| Profile | Tiles | Features |
-|---|---|---|
-| `shipping` | Ship Individual, Ship Bulk, Ship Manual, TDCJ Book Portal, IBP Requests, IBP Packages | `shipping`: shippy, shippy-gui, the PM-2411-BT label printer, log upload |
-| `intake` | IBP Requests | `package-printer`: the DYMO print server (direct USB) |
-| `portal` | TDCJ Book Portal | `low-memory`: Firefox settings for the 2 GB Chromebook |
-
-Each is `profiles/<name>/profile.conf` (installed as
-`/etc/ibp-kiosk/profile.conf`) and `station.toml` (the tiles, status strip
-and admin screen, installed as `/etc/ibp-kiosk/station.toml`).
-
 ## 1. Build the USB stick
 
-Build one ISO per machine; the profile and the hostname are baked in.
+Build one ISO per machine; the hostname is baked in.
 
 ```sh
-KIOSK_PROFILE=shipping KIOSK_HOSTNAME=ibp-pippin ./build.sh
+KIOSK_HOSTNAME=ibp-pippin ./build.sh
 ```
 
 It asks for anything required and unset:
 
 | Setting | |
 |---|---|
-| `KIOSK_PROFILE` | `shipping`, `intake` or `portal` |
 | `KIOSK_HOSTNAME` | the machine's name (lowercase, digits, dashes): `ibp-` plus a Tolkien character, e.g. `ibp-pippin` (`CLAUDE.md`, "Machines") |
 | `KIOSK_WIFI_SSID`, `KIOSK_WIFI_PSK` | Wi-Fi (WPA2 personal), used by the installer and the station. Empty SSID: no Wi-Fi, and the install needs an Ethernet cable |
 | `KIOSK_SITE_WIFI_SSID`, `KIOSK_SITE_WIFI_PSK` | optional, not asked for: a second Wi-Fi saved as `ibp-site-wifi` (IBP's network, when building at home) |
@@ -56,10 +46,10 @@ It asks for anything required and unset:
 | `KIOSK_SSH_KEYS` | `authorized_keys` for `ibp`; default `~/.ssh/id_ed25519.pub` |
 | `KIOSK_TAILSCALE_AUTHKEY` | optional auth key: joins the tailnet as the hostname on first boot, then the key file is deleted. Use the IBP tailnet's station key (Bitwarden `tailscale insidebooksproject`, field `auth-key-station`) |
 | `KIOSK_UPDATE_BRANCH` | optional, not asked for: the branch the station updates itself from at boot (default `deploy`; empty turns updates off) |
-| `KIOSK_SHIPPY_CONFIG`, `KIOSK_SHIPPY_GUI_CONFIG` | shipping only: the `config.ini` files for shippy and shippy-gui |
-| `KIOSK_LOG_SHARE`, `KIOSK_LOG_USER`, `KIOSK_LOG_PASSWORD` | shipping only: the machine's Samba log share on ibp-server (`//host/share`) |
+| `KIOSK_SHIPPY_CONFIG`, `KIOSK_SHIPPY_GUI_CONFIG` | the `config.ini` files for shippy and shippy-gui |
+| `KIOSK_LOG_SHARE`, `KIOSK_LOG_USER`, `KIOSK_LOG_PASSWORD` | the machine's Samba log share on ibp-server (`//host/share`) |
 
-For the shipping settings an empty answer leaves that file out; it can be
+For these three an empty answer leaves that file out; it can be
 added later by rerunning `setup.sh` with a secrets directory.
 
 The ISO holds the Wi-Fi password, the API keys and the admin password hash:
@@ -72,16 +62,16 @@ sudo dd if=build/ibp-kiosk-ibp-pippin.iso of=/dev/sdX bs=4M conv=fsync status=pr
 ```
 
 `KIOSK_TEST=1 ./build.sh` builds a test ISO with no real secrets (admin
-password `testpw`, no Wi-Fi, placeholder app configs, profile `shipping`,
-hostname `test-station`, no updates at boot; all overridable). Never install
-it on a real machine. `KIOSK_TEST_BROADCOM_STA=1` also makes the install
+password `testpw`, no Wi-Fi, placeholder app configs, hostname
+`test-station`, no updates at boot; all overridable). Never install it on a
+real machine. `KIOSK_TEST_BROADCOM_STA=1` also makes the install
 build the MacBook Wi-Fi driver without the hardware.
 
 ## 2. Install
 
 UEFI machines only. Boot the stick (Acer: F12 at power-on, after enabling
 the F12 boot menu in the firmware setup; Chromebook: Esc with MrChromebox
-firmware) and choose **Install IBP station _name_ (_profile_)**. The menu
+firmware) and choose **Install IBP station _name_**. The menu
 names the machine the stick was built for and waits for Enter, so a machine
 that boots it by accident never starts an install. The rest is unattended
 (20-30 minutes) and ends with a reboot; pull the stick.
@@ -173,13 +163,12 @@ own `deploy` branches, each time they start (`docs/apps.md`).
 
 ### Change one machine by hand
 
-Edit this repo, copy it over and rerun `setup.sh` (it keeps the machine's
-profile; `-p NAME` switches it). On a machine that follows `deploy`, the
+Edit this repo, copy it over and rerun `setup.sh`. On a machine that follows `deploy`, the
 next release replaces what you copied.
 
 ```sh
 rsync -a --exclude build --exclude .git ./ ibp@<hostname>.local:ibp-kiosk/
-ssh -t ibp@<hostname>.local sudo sh ibp-kiosk/setup.sh [-p PROFILE] [SECRETS_DIR]
+ssh -t ibp@<hostname>.local sudo sh ibp-kiosk/setup.sh [SECRETS_DIR]
 ```
 
 `SECRETS_DIR` is optional and holds the files `build.sh` writes (`CLAUDE.md`,

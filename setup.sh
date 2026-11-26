@@ -3,29 +3,23 @@
 # installer runs it (from installer/late.sh); it is safe to rerun over SSH
 # after changing the files here:
 #
-#   sudo sh setup.sh [-p PROFILE] [SECRETS_DIR]
+#   sudo sh setup.sh [SECRETS_DIR]
 #
-# PROFILE is a directory under profiles/; without -p it is the one this
-# machine was installed with (KIOSK_PROFILE in /etc/ibp-kiosk/profile.conf).
+# Every station is the same: every tile, both kinds of label printer.
 # SECRETS_DIR holds what build.sh writes (authorized_keys, wifi/,
 # tailscale-authkey, shippy.ini, ...); every file in it is optional.
 #
 # After the base system, it sources setup.d/*.sh in order with KIOSK_SRC,
-# KIOSK_SECRETS, KIOSK_FEATURES and has_feature (CLAUDE.md), plus
-# KIOSK_PROFILE and KIOSK_LIVE (1 when running on the live system rather
+# KIOSK_SECRETS and KIOSK_LIVE (1 when running on the live system rather
 # than in the installer), and the functions shutting_down and
-# live_systemctl. A step must not call exit, and must be safe to rerun.
+# live_systemctl (CLAUDE.md). A step must not call exit, and must be safe
+# to rerun.
 set -eu
 
 KIOSK_SRC=$(cd "$(dirname "$0")" && pwd)
-KIOSK_PROFILE=""
-while getopts p: opt; do
-    case "$opt" in
-        p) KIOSK_PROFILE=$OPTARG ;;
-        *) echo "usage: setup.sh [-p PROFILE] [SECRETS_DIR]" >&2; exit 2 ;;
-    esac
-done
-shift $((OPTIND - 1))
+case "${1:-}" in
+    -*) echo "usage: setup.sh [SECRETS_DIR]" >&2; exit 2 ;;
+esac
 KIOSK_SECRETS=${1:-}
 if [ -n "$KIOSK_SECRETS" ]; then
     KIOSK_SECRETS=$(cd "$KIOSK_SECRETS" && pwd)
@@ -35,24 +29,6 @@ if [ "$(id -u)" -ne 0 ]; then
     echo "setup.sh: run it as root (sudo sh setup.sh)" >&2
     exit 1
 fi
-if [ -z "$KIOSK_PROFILE" ] && [ -f /etc/ibp-kiosk/profile.conf ]; then
-    # shellcheck source=/dev/null
-    KIOSK_PROFILE=$(. /etc/ibp-kiosk/profile.conf && echo "${KIOSK_PROFILE:-}")
-fi
-if [ -z "$KIOSK_PROFILE" ] || [ ! -f "$KIOSK_SRC/profiles/$KIOSK_PROFILE/profile.conf" ]; then
-    echo "setup.sh: no profile '$KIOSK_PROFILE'; pass one with -p ($(cd "$KIOSK_SRC/profiles" && echo */ | tr -d /))" >&2
-    exit 1
-fi
-KIOSK_FEATURES=""
-# shellcheck source=/dev/null
-. "$KIOSK_SRC/profiles/$KIOSK_PROFILE/profile.conf"
-
-has_feature() {
-    case " $KIOSK_FEATURES " in
-        *" $1 "*) return 0 ;;
-    esac
-    return 1
-}
 # KIOSK_LIVE=1 on a running system (a rerun over SSH), empty in the
 # installer's chroot, so steps know whether to restart services now.
 KIOSK_LIVE=""
@@ -60,7 +36,7 @@ if [ -d /run/systemd/system ] &&
     [ "$(stat -c %d:%i /)" = "$(stat -c %d:%i /proc/1/root/.)" ]; then
     KIOSK_LIVE=1
 fi
-export KIOSK_SRC KIOSK_SECRETS KIOSK_PROFILE KIOSK_FEATURES KIOSK_LIVE
+export KIOSK_SRC KIOSK_SECRETS KIOSK_LIVE
 
 # shutting_down: true once a shutdown or restart has begun. The boot updater
 # runs this script, and a shutdown waits for it (ibp-kiosk-update.service),
@@ -89,7 +65,7 @@ live_systemctl() {
 }
 export DEBIAN_FRONTEND=noninteractive
 umask 022
-echo "ibp-kiosk: setting up profile $KIOSK_PROFILE (features: ${KIOSK_FEATURES:-none})"
+echo "ibp-kiosk: setting up this station"
 
 # --- Packages ---------------------------------------------------------------
 # The installer only comments out the install media's apt source after
@@ -145,10 +121,8 @@ else
     echo "ibp-kiosk: WARNING: no launcher/ibp_kiosk; the session will have no launcher" >&2
 fi
 
-# The station's profile
-install -d -m 755 /etc/ibp-kiosk
-install -m 644 "$KIOSK_SRC/profiles/$KIOSK_PROFILE/profile.conf" /etc/ibp-kiosk/profile.conf
-install -m 644 "$KIOSK_SRC/profiles/$KIOSK_PROFILE/station.toml" /etc/ibp-kiosk/station.toml
+# Left by the per-station profiles this image had until 2026-11-26.
+rm -f /etc/ibp-kiosk/profile.conf
 
 # --- The kiosk user: no password, logged in automatically on tty1 ------------
 # The getty@tty1 drop-in in rootfs logs it in; its login shell starts the

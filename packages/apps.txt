@@ -1,5 +1,5 @@
-# The apps every station can run (Debian 13 trixie names). Packages only
-# some features need are installed by their setup.d step instead:
+# The apps every station runs (Debian 13 trixie names). Packages that belong
+# to one app are installed by its setup.d step instead:
 # 50-apps.sh (git, and uv from Astral), 60-shipping.sh (cifs-utils,
 # the PySide6 wheel's system libraries), 70-package-printer.sh (CUPS, for
 # printing the label PDF from Firefox).

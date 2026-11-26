@@ -1,12 +1,11 @@
 #!/usr/bin/env bash
 # Build build/ibp-kiosk-<hostname>.iso: the current Debian 13 netinst ISO with
-# a boot entry that installs one IBP station unattended. The profile and the
-# hostname are baked in, so build one ISO per machine.
+# a boot entry that installs one IBP station unattended. The hostname is
+# baked in, so build one ISO per machine.
 #
 # Settings come from the environment; anything required and unset is asked
 # for. The ISO holds the Wi-Fi password, the app API keys and the admin
 # password hash, so treat the USB stick as a secret and wipe it after use.
-#   KIOSK_PROFILE                    shipping, intake or portal (profiles/)
 #   KIOSK_HOSTNAME                   the machine's name, e.g. ibp-laptop2
 #   KIOSK_WIFI_SSID, KIOSK_WIFI_PSK  Wi-Fi to join (WPA2 personal); the
 #                                    installer uses it too. Set the SSID to
@@ -24,15 +23,15 @@
 #   KIOSK_UPDATE_BRANCH              optional: the branch the station updates
 #                                    itself from at boot (default deploy;
 #                                    empty turns updates off)
-# Shipping profile only (each asked for; an empty answer leaves it out):
+# The apps' settings (each asked for; an empty answer leaves it out):
 #   KIOSK_SHIPPY_CONFIG              shippy's config.ini
 #   KIOSK_SHIPPY_GUI_CONFIG          shippy-gui's config.ini
 #   KIOSK_LOG_SHARE                  Samba share for the logs, //host/share
 #   KIOSK_LOG_USER, KIOSK_LOG_PASSWORD
 #
 # KIOSK_TEST=1 builds a test ISO with no real secrets: admin password
-# "testpw", no Wi-Fi, placeholder app configs and log share, profile
-# "shipping" and hostname "test-station" unless set, no updates at boot
+# "testpw", no Wi-Fi, placeholder app configs and log share, hostname
+# "test-station" unless set, no updates at boot
 # unless KIOSK_UPDATE_BRANCH is set. SSH keys are used if
 # found. Never put a test ISO on a real machine. KIOSK_TEST_BROADCOM_STA=1
 # makes the install build the Broadcom "wl" Wi-Fi driver without the hardware.
@@ -75,16 +74,12 @@ no_newlines() {  # no_newlines VALUE...: reject values that would break a file
 }
 
 if [ "$test_mode" = 1 ]; then
-    : "${KIOSK_PROFILE:=shipping}" "${KIOSK_HOSTNAME:=test-station}"
+    : "${KIOSK_HOSTNAME:=test-station}"
     : "${KIOSK_ADMIN_PASSWORD:=testpw}"
     KIOSK_WIFI_SSID=${KIOSK_WIFI_SSID:-}
     KIOSK_TAILSCALE_AUTHKEY=""
 fi
 
-ask KIOSK_PROFILE "Profile ($(cd profiles && echo */ | tr -d /))"
-if ! [[ $KIOSK_PROFILE =~ ^[a-z0-9-]+$ ]] || [ ! -f "profiles/$KIOSK_PROFILE/profile.conf" ]; then
-    die "no such profile: $KIOSK_PROFILE"
-fi
 ask KIOSK_HOSTNAME "Hostname"
 [[ $KIOSK_HOSTNAME =~ ^[a-z0-9]([a-z0-9-]{0,61}[a-z0-9])?$ ]] ||
     die "bad hostname: $KIOSK_HOSTNAME (lowercase letters, digits and dashes)"
@@ -123,12 +118,7 @@ fi
 KIOSK_TAILSCALE_AUTHKEY=${KIOSK_TAILSCALE_AUTHKEY:-}
 no_newlines "$KIOSK_TAILSCALE_AUTHKEY"
 
-# shellcheck source=/dev/null
-features=$(. "profiles/$KIOSK_PROFILE/profile.conf" && echo "${KIOSK_FEATURES:-}")
-shipping=""
-case " $features " in *" shipping "*) shipping=1 ;; esac
-
-if [ -n "$shipping" ] && [ "$test_mode" != 1 ]; then
+if [ "$test_mode" != 1 ]; then
     for var in KIOSK_SHIPPY_CONFIG KIOSK_SHIPPY_GUI_CONFIG; do
         ask_optional "$var" "$var: path to the config.ini (empty to leave it out)"
         [ -z "${!var}" ] || [ -s "${!var}" ] || die "no file at ${!var}"
@@ -180,15 +170,13 @@ printf '%s\n' "$preseed" >"$payload/preseed.cfg"
 
 menu=$(<installer/grub.cfg)
 menu=${menu//@HOSTNAME@/"$KIOSK_HOSTNAME"}
-menu=${menu//@PROFILE@/"$KIOSK_PROFILE"}
 printf '%s\n' "$menu" >build/grub.cfg
 
 # The repo's files, as setup.sh expects them (KIOSK_SRC on the target)
-for f in setup.sh installer packages setup.d rootfs profiles launcher; do
+for f in setup.sh installer packages setup.d rootfs launcher; do
     if [ -e "$f" ]; then cp -r "$f" "$payload/kiosk/"; fi
 done
 find "$payload/kiosk" \( -name __pycache__ -o -name '*.pyc' \) -prune -exec rm -rf {} +
-printf '%s\n' "$KIOSK_PROFILE" >"$payload/kiosk/profile"
 
 # Secrets, every one optional (names per CLAUDE.md)
 secrets=$payload/kiosk/secrets
@@ -232,7 +220,7 @@ elif [ "$test_mode" = 1 ]; then
     printf 'UPDATE_BRANCH=\n' >"$secrets/update.conf"
 fi
 
-if [ -n "$shipping" ] && [ "$test_mode" = 1 ]; then
+if [ "$test_mode" = 1 ]; then
     for name in shippy shippy-gui; do
         cat >"$secrets/$name.ini" <<'EOF'
 # Placeholder written by build.sh KIOSK_TEST=1: no real keys.
@@ -249,7 +237,7 @@ EOF
     done
     printf 'SHARE=//ibp-server.invalid/ibp-logs-test\nUSERNAME=test\nPASSWORD=test\n' \
         >"$secrets/log-upload.conf"
-elif [ -n "$shipping" ]; then
+else
     [ -z "${KIOSK_SHIPPY_CONFIG:-}" ] || cp "$KIOSK_SHIPPY_CONFIG" "$secrets/shippy.ini"
     [ -z "${KIOSK_SHIPPY_GUI_CONFIG:-}" ] || cp "$KIOSK_SHIPPY_GUI_CONFIG" "$secrets/shippy-gui.ini"
     if [ -n "${KIOSK_LOG_SHARE:-}" ]; then
@@ -272,7 +260,7 @@ xorriso -indev "build/$iso" -outdev "$out" \
 
 echo
 echo "Built $out from $iso"
-echo "  profile $KIOSK_PROFILE, hostname $KIOSK_HOSTNAME, Wi-Fi ${KIOSK_WIFI_SSID:-none}${test_mode:+ (TEST build)}"
+echo "  hostname $KIOSK_HOSTNAME, Wi-Fi ${KIOSK_WIFI_SSID:-none}${test_mode:+ (TEST build)}"
 echo "  secrets: $(cd "$secrets" && find . -type f | sed 's|^\./||' | LC_ALL=C sort | paste -sd' ')"
 echo "Write it to the USB stick (replace sdX; this erases the stick):"
 echo "  sudo dd if=$out of=/dev/sdX bs=4M conv=fsync status=progress"
