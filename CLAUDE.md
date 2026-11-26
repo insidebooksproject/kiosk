@@ -5,9 +5,8 @@ full-screen launcher with one tile per task (TDCJ Book Portal, IBP Requests,
 IBP Packages, Ship Individual, Ship Bulk, Ship Manual) and nothing else.
 Every machine is the same: all the tiles and both kinds of label printer,
 so any machine can be used for any task (there are no per-machine profiles
-since 2026-11-26). The
-repo is `insidebooksproject/kiosk` (public); the product, and everything it
-installs, is named `ibp-kiosk`. Build, install and run it: `README.md`. The
+since 2026-11-26). The repo is `insidebooksproject/kiosk` (public); the
+product, and everything it installs, is named `ibp-kiosk`. Build, install and run it: `README.md`. The
 apps, printers and status checks: `docs/apps.md`. Why it is built this way,
 and the rollout: `docs/design.md`. The launcher: `launcher/README.md`. This
 file: the layout, the contracts between the parts, releasing, and the
@@ -34,8 +33,8 @@ this one grew from.
 
 ### Names and paths on the installed system
 
-- Config directory `/etc/ibp-kiosk/`: `shippy.ini` (root:kiosk 0640), `log-upload.conf` (root 0600),
-  `tailscale-authkey` (root 0600, deleted after use), `update.conf`
+- Config directory `/etc/ibp-kiosk/`: `shippy.ini` (root:kiosk 0640),
+  `log-upload.conf` (root 0600), `tailscale-authkey` (root 0600, deleted after use), `update.conf`
   (optional, 0644: `UPDATE_BRANCH`, `UPDATE_URL`), `apps.conf` (optional,
   never installed: start-page and server URLs, `docs/apps.md`), and from
   `rootfs/` `station.toml`, `foot.ini`, `labwc/` and `waybar/`.
@@ -186,8 +185,8 @@ Built 2026-11-24. The only install on real hardware, on the MacBook
 
 Tested in the QEMU VM (`KIOSK_TEST=1 ./build.sh`, `./test-vm.sh install`,
 then `shipping` profile, dummy credentials, 4 GB): the unattended install
-onto an NVMe disk; boot into the launcher; the Book Portal tile (reaches the ID.me
-sign-in); Ship Individual and Ship Bulk (shippy in foot, reports no printer);
+onto an NVMe disk; boot into the launcher; the Book Portal tile (reaches
+the ID.me sign-in); Ship Individual and Ship Bulk (shippy in foot, reports no printer);
 Ship Manual (shippy-gui maximized, its Settings dialog as a dialog); the Home
 key (Super); the admin screen and `nmtui`; the label watcher service; the
 power button; a reboot; and the installer's refusal with two internal
