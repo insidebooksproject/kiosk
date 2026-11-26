@@ -128,6 +128,9 @@ Nvidia graphics, driven by nouveau), log in over SSH and add
 - **Closing an app:** the ✕ at the top right returns to the tiles: in
   Firefox (an ordinary window with tabs), and in the title bar of Ship
   Individual, Ship Bulk and Ship Manual, which also names the mode.
+- **Sign-ins are forgotten:** Firefox clears cookies, history and site data
+  every time it closes, so each volunteer signs in to the Book Portal
+  (ID.me) themselves.
 - **Home key:** the Windows (Super) key on its own closes the
   current app and shows the tiles. On the Chromebook it is the Search key.
 - **Admin screen:** Ctrl+Alt+A on the tiles: hostname, addresses, version,

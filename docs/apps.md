@@ -82,6 +82,19 @@ The start pages can be changed without editing the script: an optional
   command line and written to its profile's `user.js` (for Alt+Home).
   Added: `DisableProfileRefresh` and `DisableSafeMode`, so repeated unclean
   exits never offer a refresh or safe mode.
+- **Nothing is kept between volunteers** (since 2026-11-26). The policy
+  `SanitizeOnShutdown` clears cookies, site storage, history, the cache,
+  form entries and site permissions each time Firefox closes, so the next
+  volunteer never inherits a sign-in: the Book Portal asks for ID.me every
+  time the tile is opened. The Home key and a power cut end Firefox without
+  a clean close; it would then clear at its next start, but only after
+  asking for the start page with the old cookies (seen in the VM, 3 runs of
+  3). So `ibp-kiosk-app` removes the cookies, site storage, history, open
+  tabs and cache from the profile before every start, and Firefox clears
+  the rest. Extension storage is not site storage and both leave it alone,
+  so the extension's server setting and its queue of unsent registration
+  reports survive. Files a volunteer downloaded stay in
+  `/home/kiosk/Downloads`; no tile can open them (`file://` is blocked).
 - **The extension in the requests profile.** It is installed there too
   (policies can't differ per profile) and is harmless: its content scripts
   match only `https://bookportal.tdcj.texas.gov/BookPortal/protected/*` and

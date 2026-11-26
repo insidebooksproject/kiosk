@@ -100,12 +100,32 @@ wait_for_old_firefox() {
     done
 }
 
+# Forget the last volunteer before Firefox starts. Firefox clears its own
+# data when it closes (SanitizeOnShutdown in policies.json), but the Home
+# key and a power cut end it without a clean close. It then clears at its
+# next start, only after its window is up: the start page has already been
+# asked for with the old cookies. So the sign-ins, site storage, history,
+# open tabs and cache go here first; Firefox clears whatever else is left.
+# Extension storage (storage/default/moz-extension+++*) and prefs.js stay:
+# the extension keeps its server setting and unsent reports there.
+forget_last_volunteer() {
+    profile=$1
+    rm -rf -- "$profile"/cookies.sqlite* "$profile"/webappsstore.sqlite* \
+        "$profile"/places.sqlite* "$profile"/favicons.sqlite* \
+        "$profile"/formhistory.sqlite* "$profile"/permissions.sqlite* \
+        "$profile"/content-prefs.sqlite* "$profile"/sessionstore.jsonlz4 \
+        "$profile"/sessionstore-backups "$profile"/cache2 \
+        "$profile"/storage/default/http*
+}
+
 firefox() {
     name=$1 url=$2
     need firefox-esr "Firefox is not installed on this machine. Ask an IBP admin."
     profile=$FIREFOX_DIR/$name
     mkdir -p "$profile" || die "Can't create the Firefox profile $profile."
     wait_for_old_firefox "$profile"
+    forget_last_volunteer "$profile" ||
+        die "Can't clear the last volunteer's Firefox data in $profile. Ask an IBP admin."
     # The start page is per profile (policies.json is shared by both tiles,
     # so it can't set it). Firefox reads user.js at every start.
     cat >"$profile/user.js" <<EOF || die "Can't write $profile/user.js."
