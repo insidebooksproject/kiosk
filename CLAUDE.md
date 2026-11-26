@@ -2,7 +2,10 @@
 
 One Debian 13 image for every IBP volunteer machine. It boots into a
 full-screen launcher with one tile per task (TDCJ Book Portal, IBP Requests,
-IBP Packages, Ship Individual, Ship Bulk, Ship Manual) and nothing else. The
+IBP Packages, Ship Individual, Ship Bulk, Ship Manual) and nothing else.
+Every machine is the same: all the tiles and both kinds of label printer,
+so any machine can be used for any task (there are no per-machine profiles
+since 2026-11-26). The
 repo is `insidebooksproject/kiosk` (public); the product, and everything it
 installs, is named `ibp-kiosk`. Build, install and run it: `README.md`. The
 apps, printers and status checks: `docs/apps.md`. Why it is built this way,
@@ -20,11 +23,10 @@ this one grew from.
 |---|---|
 | `build.sh` | Builds `build/ibp-kiosk-<hostname>.iso`: the current Debian netinst ISO plus an unattended install entry and `/kiosk/payload.cpio.gz` (preseed, this repo, secrets) |
 | `installer/` | Preseed, USB boot menu, `early.sh` (picks the disk), `late.sh` (runs `setup.sh` in the new system) |
-| `setup.sh` | Turns a minimal Debian 13 into a station: installs `packages/*.txt`, copies `rootfs/`, the launcher and the profile, creates the `kiosk` user, then sources `setup.d/*.sh` in order. Rerunnable |
+| `setup.sh` | Turns a minimal Debian 13 into a station: installs `packages/*.txt`, copies `rootfs/` and the launcher, creates the `kiosk` user, then sources `setup.d/*.sh` in order. Rerunnable |
 | `packages/*.txt` | Debian packages, one per line, `#` comments. `setup.sh` installs the union |
 | `setup.d/NN-name.sh` | Steps `setup.sh` runs in order after copying `rootfs/` (POSIX sh, sourced with the variables below) |
-| `rootfs/` | Files copied to `/`, laid out by absolute path |
-| `profiles/<name>/` | `profile.conf` and `station.toml` for each station role |
+| `rootfs/` | Files copied to `/`, laid out by absolute path; the launcher's config is `rootfs/etc/ibp-kiosk/station.toml` |
 | `launcher/` | The launcher, a Python package `ibp_kiosk` (PySide6) with tests |
 | `test-vm.sh` | Installs and boots the image in QEMU |
 
@@ -32,12 +34,11 @@ this one grew from.
 
 ### Names and paths on the installed system
 
-- Config directory `/etc/ibp-kiosk/`: `station.toml`, `profile.conf`,
-  `shippy.ini` (root:kiosk 0640), `log-upload.conf` (root 0600),
+- Config directory `/etc/ibp-kiosk/`: `shippy.ini` (root:kiosk 0640), `log-upload.conf` (root 0600),
   `tailscale-authkey` (root 0600, deleted after use), `update.conf`
   (optional, 0644: `UPDATE_BRANCH`, `UPDATE_URL`), `apps.conf` (optional,
   never installed: start-page and server URLs, `docs/apps.md`), and from
-  `rootfs/` `foot.ini` and `labwc/`.
+  `rootfs/` `station.toml`, `foot.ini`, `labwc/` and `waybar/`.
 - shippy-gui reads and writes `config.ini` in its working directory:
   `/home/kiosk/.config/shippy-gui/config.ini` (kiosk 0600).
 - Launcher code: `launcher/ibp_kiosk/` is copied to
@@ -124,39 +125,21 @@ names no tile is an error (the launcher shows a config-error screen).
   `/etc/ibp-kiosk/labwc/`; the launcher is labwc's session client (`-S`), so
   the session ends, and getty restarts it, if the launcher exits.
 
-### `profile.conf`
-
-Shell variables, sourced by `setup.sh` and `setup.d/*.sh`, installed as
-`/etc/ibp-kiosk/profile.conf`:
-
-```sh
-KIOSK_PROFILE="shipping"     # the profile's name, so a rerun can find it
-KIOSK_FEATURES="shipping"    # space-separated, see below
-```
-
-| Feature | Turns on |
-|---|---|
-| `shipping` | uv, shippy and shippy-gui config, the PM-2411-BT udev rule, `ibp-label-watcher` (user service), log upload timer |
-| `package-printer` | uv, `ibp-print-server` (DYMO LabelWriter over direct USB, `localhost:40121`), and CUPS for printing the label PDF from Firefox |
-| `low-memory` | Firefox low-memory prefs (2 GB Chromebook) |
-
-The profiles and their tiles: `README.md`, "Profiles".
-
 ### Variables `setup.sh` gives `setup.d/*.sh`
 
 `KIOSK_SRC` (this repo's files on the target), `KIOSK_SECRETS` (secrets
-directory, may be empty), `KIOSK_PROFILE`, `KIOSK_FEATURES`, `KIOSK_LIVE`
-(1 on a running system, empty in the installer's chroot: only restart
-services when it is set), and the functions `has_feature NAME`,
-`shutting_down` (true once a shutdown or restart has begun) and
+directory, may be empty), `KIOSK_LIVE` (1 on a running system, empty in
+the installer's chroot: only restart services when it is set), and the
+functions `shutting_down` (true once a shutdown or restart has begun) and
 `live_systemctl ARGS...`. Steps must be safe to rerun and must not call
 `exit`. On a live system a step starts, stops, restarts and reloads units
 only through `live_systemctl`, which never waits for the job and does
 nothing during a shutdown: a shutdown waits for `setup.sh`, so a
 `systemctl` that waits on a job then never returns (it hung `ibp-bilbo`
 for 10 minutes on 2026-11-26). `rootfs/usr/sbin/policy-rc.d` does the same
-for package scripts that apt runs. `setup.sh [-p PROFILE]
-[SECRETS_DIR]`; without `-p` it reuses the installed profile.
+for package scripts that apt runs. `setup.sh [SECRETS_DIR]`; a rerun
+deletes the `/etc/ibp-kiosk/profile.conf` that stations installed before
+2026-11-26 have.
 
 ### Secrets directory (written by `build.sh`, every file optional)
 
@@ -202,8 +185,8 @@ Built 2026-11-24. The only install on real hardware, on the MacBook
 `ibp-bilbo`, is not trustworthy (see Machines).
 
 Tested in the QEMU VM (`KIOSK_TEST=1 ./build.sh`, `./test-vm.sh install`,
-`shipping` profile, dummy credentials, 4 GB): the unattended install onto an
-NVMe disk; boot into the launcher; the Book Portal tile (reaches the ID.me
+then `shipping` profile, dummy credentials, 4 GB): the unattended install
+onto an NVMe disk; boot into the launcher; the Book Portal tile (reaches the ID.me
 sign-in); Ship Individual and Ship Bulk (shippy in foot, reports no printer);
 Ship Manual (shippy-gui maximized, its Settings dialog as a dialog); the Home
 key (Super); the admin screen and `nmtui`; the label watcher service; the
@@ -227,7 +210,7 @@ first request carries no old cookie; the extension's storage is unchanged;
 the Book Portal tile still reaches the ID.me sign-in.
 
 The boot updater's shutdown wait and status texts were tested in the VM
-2026-11-26 (`portal` profile, 2 GB, a local `deploy` branch whose
+2026-11-26 (then `portal` profile, 2 GB, a local `deploy` branch whose
 `setup.sh` only sleeps): the Updates chip goes "Checking…", "Updating…",
 "Updated (restart to finish)", or "Checking…" then "Could not check (no
 internet?)" with the source unreachable. A reboot during `setup.sh` showed
@@ -241,7 +224,7 @@ anything. Not seen on real hardware (the switch to tty8 on Intel graphics).
 That test missed a deadlock, which hung `ibp-bilbo` for 10 minutes on
 2026-11-26: a reboot during `40-apply.sh` left its `systemctl reload ssh`
 waiting on the shutdown, which waited on it. Tested in the VM the same day
-(`portal` profile, 2 GB, a real `setup.sh` from a local branch with a
+(then `portal` profile, 2 GB, a real `setup.sh` from a local branch with a
 25-second sleep before `40-apply.sh`'s live changes, reboot during the
 sleep): without `live_systemctl` the shutdown hung until the 2-minute kill
 and the update wasn't recorded; with it, every live change printed
@@ -252,7 +235,9 @@ refusal during a shutdown, with apt upgrading a package, is untested.
 
 Not tested: any real hardware (PM-2411-BT and DYMO printers, Wi-Fi, the Acer
 laptops, the Chromebook's 2 GB); the IBP Requests page itself (the server
-isn't reachable from the VM); the `intake` and `portal` profiles; the print
+isn't reachable from the VM); the single all-tiles configuration that
+replaced the profiles (2026-11-26), including the print server and label
+watcher both running on one machine and on the 2 GB Chromebook; the print
 server; log upload to the real share; Tailscale join. `docs/apps.md` has the
 apps' own "Not verified" list and `docs/design.md` the rollout.
 
@@ -269,8 +254,7 @@ Known rough edges:
 Host names are `ibp-<name>`, where the name is a Tolkien character (decided
 2026-11-25): short, easy to spell aloud, no villains (`ibp-frodo`,
 `ibp-pippin`, `ibp-merry`, `ibp-gimli`). The name belongs to the hardware and
-stays when the profile changes; the role volunteers see is `name` in
-`station.toml`.
+stays when the machine moves to another task.
 
 Every kiosk machine joins the **IBP tailnet** (GitHub organisation
 `insidebooksproject`, set up 2026-11-25), never jstarr's personal one. Build
@@ -294,6 +278,13 @@ build of the same commit and profile was installed in the VM with 2 GB the
 same day: it boots straight to the Book Portal's ID.me sign-in with the bar
 on top, about 900 MB used with Firefox open and no swap. Nothing is known
 yet about the Chromebook's own Wi-Fi and graphics under this image.
+
+The stick predates the removal of profiles (2026-11-26), so an install from
+it first shows the Book Portal tile only. Its boot updater then runs the
+current `deploy` (once released), which gives it every tile from the next
+boot, the print server and label watcher, and shippy and shippy-gui
+(about 700 MB). It has no shippy configs, so the shipping tiles fail until
+they are added. Rebuilding the stick (with the configs) avoids both steps.
 
 ### MacBook `ibp-bilbo` (model A1278)
 

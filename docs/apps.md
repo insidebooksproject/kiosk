@@ -16,19 +16,19 @@ the base system and the apps is in `CLAUDE.md`; the background is in
 | `rootfs/usr/share/firefox-esr/distribution/policies.json` | Firefox policies (every browser tile) |
 | `rootfs/etc/firefox-esr/ibp-kiosk.js` | Firefox prefs (every browser tile) |
 | `rootfs/etc/gtk-3.0/settings.ini` | Firefox's window buttons: close only |
-| `rootfs/usr/local/share/ibp-kiosk/firefox/ibp-kiosk-low-memory.js` | Low-memory prefs, copied to `/etc/firefox-esr/` with feature `low-memory` |
+| `rootfs/usr/local/share/ibp-kiosk/firefox/ibp-kiosk-low-memory.js` | Low-memory prefs, copied to `/etc/firefox-esr/` on a machine with under 3 GiB of RAM |
 | `rootfs/etc/ibp-kiosk/foot.ini` | The terminal's config |
 | `rootfs/usr/local/bin/ibp-kiosk-bar`, `rootfs/etc/ibp-kiosk/waybar/` | The bar across the top of the screen |
 | `rootfs/etc/ibp-kiosk/labwc/{rc.xml,themerc-override}`, `rootfs/usr/share/themes/IBP-Kiosk/` | The title bar on the terminal windows and Ship Manual |
 | `rootfs/etc/uv/uv.toml` | uv: Debian's Python only, never download one |
 | `rootfs/etc/polkit-1/rules.d/50-ibp-kiosk-network.rules` | Lets `kiosk` change network settings (Wi-Fi tile) |
-| `rootfs/usr/local/share/ibp-kiosk/udev/*.rules` | Printer udev rules, copied to `/etc/udev/rules.d/` per feature |
+| `rootfs/usr/local/share/ibp-kiosk/udev/*.rules` | Printer udev rules, copied to `/etc/udev/rules.d/` |
 | `rootfs/etc/systemd/user/ibp-kiosk-label-watcher.service` | The label watcher, a `kiosk` user service |
 | `rootfs/etc/systemd/system/ibp-kiosk-log-upload.{service,timer}` | Log upload every 15 minutes |
 | `rootfs/etc/systemd/system/ibp-kiosk-print-server{,-update}.service` | ibp-print-server and its update from GitHub |
-| `setup.d/50-apps.sh` | Low-memory prefs; git and uv for features `shipping` and `package-printer` |
-| `setup.d/60-shipping.sh` | Feature `shipping` |
-| `setup.d/70-package-printer.sh` | Feature `package-printer` |
+| `setup.d/50-apps.sh` | Low-memory prefs (under 3 GiB of RAM); git and uv |
+| `setup.d/60-shipping.sh` | shippy and shippy-gui configs, the PM-2411-BT, the label watcher, log upload |
+| `setup.d/70-package-printer.sh` | The DYMO and ibp-print-server |
 | `packages/apps.txt` | Debian packages every station gets |
 
 ## Tiles
@@ -120,7 +120,7 @@ The start pages can be changed without editing the script: an optional
   network access checks skip private-to-localhost requests by default
   (`network.lna.local-network-to-localhost.skip-checks`); `ibp-kiosk.js` locks
   that to true.
-- **Low memory** (feature `low-memory`, the 2 GB Chromebook): one content
+- **Low memory** (a machine with under 3 GiB of RAM: the 2 GB Chromebook): one content
   process, no fission, no bfcache, as on the predecessor. `50-apps.sh` copies
   `ibp-kiosk-low-memory.js` to `/etc/firefox-esr/` or removes it.
 
@@ -153,7 +153,7 @@ pick it up at the next launch (the watcher and print server at their next
 start, i.e. boot). A changed SPEC in this script (recorded in
 `~/.local/state/ibp-kiosk/tools/TOOL.spec`) reinstalls the tool. A lock
 (`flock`) keeps two installs of one tool apart. `setup.d` preinstalls every
-tool the station's features need (as its user), so the first launch is quick
+tool (as the user that runs it), so the first launch is quick
 and works offline; if that fails at install time, the first launch installs
 it instead (shippy-gui's PySide6 is about 700 MB, so that takes minutes with
 no window showing).
@@ -178,10 +178,10 @@ install, upgraded at launch, is the offline fallback.
 **uv itself.** Debian 13 has no `uv` package (it is only in unstable, as of
 2026-11-24). `50-apps.sh` installs Astral's static build
 (`uv-x86_64-unknown-linux-gnu.tar.gz`, pinned version and SHA-256 in the
-script) to `/usr/local/bin/uv` and `uvx`, on stations with feature `shipping`
-or `package-printer`, plus Debian's `git` (uv fetches git sources with it).
-To update uv, bump `IBP_APPS_UV_VERSION` and the two checksums (from the
-release's `.sha256` files) and rerun `setup.sh`; `uv self update` is not used.
+script) to `/usr/local/bin/uv` and `uvx`, plus Debian's `git` (uv fetches
+git sources with it). To update uv, bump `IBP_APPS_UV_VERSION` and the two
+checksums (from the release's `.sha256` files) and rerun `setup.sh`; `uv
+self update` is not used.
 `/etc/uv/uv.toml` (and `ibp-kiosk-tool`) set `python-preference =
 "only-system"` and `python-downloads = "never"`: every tool runs on Debian's
 `/usr/bin/python3` (3.13; shippy and shippy-gui need >= 3.12), which Debian
@@ -253,8 +253,7 @@ passwords in nmtui's "Edit a connection".
 ### Printer check
 
 `ibp-print-diag` (full report, no test print) from the `ibp-printing` tool,
-without an upgrade, then "Done (exit status N). Press any key to close." On a
-station without feature `shipping` the tool installs itself on first use.
+without an upgrade, then "Done (exit status N). Press any key to close."
 
 ## Status checks (`ibp-kiosk-status`)
 
@@ -282,7 +281,7 @@ usblp cached when the printer was plugged in.
 
 ## Shipping printer (PM-2411-BT)
 
-`/etc/udev/rules.d/60-ibp-kiosk-label-printer.rules` (feature `shipping`):
+`/etc/udev/rules.d/60-ibp-kiosk-label-printer.rules` (`60-shipping.sh`):
 
 - `/dev/usb/lpN` of USB vendor `2e3c` gets group `kiosk`, mode 0660. The
   upstream rule (the printing repo's `packaging/linux/60-ibp-label-printer.rules`)
@@ -355,7 +354,7 @@ Run it now: `sudo systemctl start ibp-kiosk-log-upload`; result:
 
 ## Package printer (DYMO) and ibp-print-server
 
-Feature `package-printer`, `70-package-printer.sh`:
+`70-package-printer.sh`, on every station:
 
 - Installs `cups cups-client cups-filters`, only so that Firefox can print
   the frontend's label PDF (the fallback when the print server fails). No

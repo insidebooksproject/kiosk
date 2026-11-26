@@ -5,7 +5,7 @@
 #
 # It asks the repo which commit the branch points at. When that is not the
 # commit installed here, it clones the branch and runs its setup.sh (which
-# keeps this machine's profile and secrets). Only a setup.sh that succeeds
+# keeps this machine's secrets). Only a setup.sh that succeeds
 # is recorded, so a failed update is tried again at the next boot, and with
 # no network the installed version just keeps running.
 #

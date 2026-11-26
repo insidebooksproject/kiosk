@@ -1,6 +1,5 @@
-# IBP station, feature package-printer: USB autosuspend off for the DYMO
-# LabelWriter (USB vendor 0922, DYMO), so it never sleeps between labels.
-# setup.d copies this to /etc/udev/rules.d/ only on stations with that
-# feature. ibp-print-server prints to it over usblp as a member of group
-# lp, so no ACL is needed.
+# IBP station: USB autosuspend off for the DYMO LabelWriter (USB vendor
+# 0922, DYMO), so it never sleeps between labels. setup.d copies this to
+# /etc/udev/rules.d/. ibp-print-server prints to it over usblp as a member
+# of group lp, so no ACL is needed.
 ACTION=="add", SUBSYSTEM=="usb", ENV{DEVTYPE}=="usb_device", ATTR{idVendor}=="0922", TEST=="power/control", ATTR{power/control}="on"

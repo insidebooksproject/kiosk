@@ -1,6 +1,5 @@
-# IBP station, feature package-printer: before each start of
-# ibp-kiosk-print-server (which wants this unit), upgrade ibp-printing from
-# its `deploy` branch, so a reboot picks up a release. If the upgrade fails
+# IBP station: before each start of ibp-kiosk-print-server (which wants
+# this unit), upgrade ibp-printing from its `deploy` branch, so a reboot picks up a release. If the upgrade fails
 # (no network), the server still starts on the installed version.
 [Unit]
 Description=Update the IBP label print server from GitHub

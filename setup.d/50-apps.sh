@@ -1,8 +1,8 @@
 # shellcheck shell=sh
 # Sourced by setup.sh (after rootfs/ is copied). The apps' parts every
-# station shares: Firefox's low-memory prefs, and uv for the stations that
-# run the IBP Python apps (features shipping and package-printer). Defines
-# the ibp_apps_* helpers that 60-shipping.sh and 70-package-printer.sh use.
+# station shares: Firefox's low-memory prefs on a machine with little RAM,
+# and uv, which runs the IBP Python apps. Defines the ibp_apps_* helpers
+# that 60-shipping.sh and 70-package-printer.sh use.
 # Never calls exit; safe to rerun.
 
 # uv is not packaged in Debian 13, so it is Astral's static build, pinned by
@@ -16,8 +16,8 @@ ibp_apps_warn() {
     echo "ibp-kiosk: WARNING: $*" >&2
 }
 
-# Install Debian packages a feature needs (not every station needs them,
-# so they are not in packages/apps.txt).
+# Install Debian packages one app needs (kept next to the app's setup
+# rather than in packages/apps.txt).
 ibp_apps_apt() {
     apt-get install -y --no-install-recommends "$@" ||
         ibp_apps_warn "could not install $*"
@@ -72,7 +72,9 @@ ibp_apps_preinstall() {
 }
 
 # --- Firefox -----------------------------------------------------------------
-if has_feature low-memory; then
+# Below 3 GiB of RAM (the 2 GB Chromebook), the low-memory prefs.
+ibp_apps_mem_kb=$(awk '$1 == "MemTotal:" {print $2}' /proc/meminfo)
+if [ "${ibp_apps_mem_kb:-0}" -gt 0 ] && [ "$ibp_apps_mem_kb" -lt 3145728 ]; then
     install -m 644 /usr/local/share/ibp-kiosk/firefox/ibp-kiosk-low-memory.js \
         /etc/firefox-esr/ibp-kiosk-low-memory.js
 else
@@ -81,7 +83,5 @@ fi
 
 # --- uv ----------------------------------------------------------------------
 # uv fetches the apps' git sources with the git command.
-if has_feature shipping || has_feature package-printer; then
-    ibp_apps_apt git
-    ibp_apps_install_uv
-fi
+ibp_apps_apt git
+ibp_apps_install_uv

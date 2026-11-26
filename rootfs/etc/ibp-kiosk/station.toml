@@ -1,4 +1,5 @@
-# Shipping laptop.
+# Every IBP station: every tile, so any machine can be used for any task.
+# Nothing opens on its own at boot. The format: CLAUDE.md.
 
 [[tile]]
 id = "ship-individual"
@@ -47,6 +48,10 @@ command = ["ibp-kiosk-status", "server"]
 [[status]]
 label = "Label printer"
 command = ["ibp-kiosk-status", "printer-shipping"]
+
+[[status]]
+label = "Package printer"
+command = ["ibp-kiosk-status", "printer-package"]
 
 [[status]]
 label = "Updates"

@@ -1,9 +1,9 @@
-# IBP station, feature package-printer: ibp-print-server from ibp-printing's
-# `deploy` branch. The IBP frontend (the IBP Requests tile) posts each
-# request label to http://localhost:40121/print-image and this prints it on
-# the DYMO LabelWriter, directly over USB (/dev/usb/lpN, group lp). Adapted
-# from ibp-printing
-# packaging/linux/ibp-print-server.service (as on ibp-label-printer).
+# IBP station: ibp-print-server from ibp-printing's `deploy` branch. The IBP
+# frontend (the IBP Requests tile) posts each request label to
+# http://localhost:40121/print-image and this prints it on the DYMO
+# LabelWriter, directly over USB (/dev/usb/lpN, group lp). Adapted from
+# ibp-printing packaging/linux/ibp-print-server.service (as on
+# ibp-label-printer).
 #
 # Differences from that unit:
 # - Runs as the system user ibp-kiosk-print (created by setup.d), whose home

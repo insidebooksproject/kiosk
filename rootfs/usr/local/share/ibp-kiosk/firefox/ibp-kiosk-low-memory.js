@@ -1,6 +1,6 @@
-// IBP station, feature low-memory (the 2 GB Chromebook). setup.d copies this
-// to /etc/firefox-esr/ only on stations with that feature, and removes it
-// from the others.
+// IBP station with under 3 GiB of RAM (the 2 GB Chromebook).
+// setup.d/50-apps.sh copies this to /etc/firefox-esr/ only on such a
+// machine, and removes it from the others.
 
 // One content process and no per-site process isolation (fission) keep
 // Firefox well under 1 GB.

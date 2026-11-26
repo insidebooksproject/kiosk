@@ -39,11 +39,12 @@ moving the server.
 | Ship Bulk | `shippy bulk` in a terminal |
 | Ship Manual | `shippy-gui` |
 
-Which tiles a machine shows is a per-machine setting, its profile, so the
-same image serves each role: the shipping laptops get all six, the intake
-station IBP Requests, and the Chromebook the Book Portal alone
-(`README.md`, "Profiles"). No profile opens an app at boot: every station
-starts at the tiles (decided 2026-11-26).
+Every machine shows all six tiles and drives both kinds of label printer,
+so any machine can be used for any task (decided 2026-11-26, replacing the
+per-machine profiles the image had until then: shipping, intake and
+portal). Nothing opens an app at boot: every station starts at the tiles.
+The only per-machine differences are the hostname, the secrets, and
+Firefox's low-memory settings on a machine with under 3 GiB of RAM.
 
 ## Decisions
 
@@ -129,8 +130,8 @@ last lines of the app's output instead of silently returning to the tiles.
 - **Package labels (DYMO LabelWriter 450 Turbo).** `ibp-print-server` as a
   systemd unit, printing to the DYMO directly over USB as on the intake
   station (`ibp-samwise`, formerly `ibp-label-printer`) since 2026-11-26,
-  only on stations with feature `package-printer` (the intake profile).
-  CUPS stays installed there only for printing the label PDF from Firefox.
+  on every station. CUPS is installed only for printing the label PDF from
+  Firefox.
 - **Label watcher.** `ibp-label-watcher` runs as a systemd user service for
   the `kiosk` user, retrying labels the apps could not print. It replaces the
   "IBP Label Watcher" scheduled task.
@@ -172,8 +173,8 @@ one internal disk of any kind, and refuses when there isn't exactly one.
    `ibp-print-diag --test-print --direct-only`, the barcode scanner, and
    `shippy diagnose-printer`. If the printer or the Wi-Fi fails here, stop.
 2. **Launcher and session in a VM**, using `test-vm.sh`. Done 2026-11-24.
-3. **Installer image**, tested by reinstalling the Chromebook kiosk with the
-   `portal` profile.
+3. **Installer image**, tested by reinstalling the Chromebook kiosk
+   (`ibp-frodo`).
 4. **Convert `ibp-merry`.** Before wiping it, copy off `config.ini` and the
    logs and take a disk image. `ibp-pippin` (formerly `ibp-laptop`) stays
    on Windows for a few shipping sessions as the fallback.

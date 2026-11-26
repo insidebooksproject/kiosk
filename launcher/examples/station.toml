@@ -1,5 +1,5 @@
 # A station.toml for trying the launcher on a development machine.
-# The real ones are in profiles/<name>/station.toml.
+# The real one is rootfs/etc/ibp-kiosk/station.toml.
 
 [[tile]]
 id = "terminal"
