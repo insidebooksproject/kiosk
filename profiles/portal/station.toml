@@ -1,8 +1,5 @@
-# Book Portal kiosk: the portal opens at boot; when it is closed (or the
-# Home key is pressed) the launcher shows its one tile.
-
-[station]
-autostart = "portal"
+# Book Portal kiosk: the launcher with the portal's tile; nothing opens on
+# its own at boot.
 
 [[tile]]
 id = "portal"

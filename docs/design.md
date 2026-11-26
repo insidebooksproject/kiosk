@@ -41,8 +41,9 @@ moving the server.
 
 Which tiles a machine shows is a per-machine setting, its profile, so the
 same image serves each role: the shipping laptops get all six, the intake
-station IBP Requests, and the Chromebook the Book Portal alone, opened at
-boot (`README.md`, "Profiles").
+station IBP Requests, and the Chromebook the Book Portal alone
+(`README.md`, "Profiles"). No profile opens an app at boot: every station
+starts at the tiles (decided 2026-11-26).
 
 ## Decisions
 
