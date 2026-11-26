@@ -280,8 +280,9 @@ The 2 GB Chromebook that ran the old Book Portal kiosk: 14 GB eMMC
 (profile `portal`, written from `main` at `5b46eb4`); on the LAN as
 `ibp-frodo.local` (`192.168.1.41`); SSH `ibp`, host key under the alias
 `ibp-frodo` (`-o HostKeyAlias=ibp-frodo`: an older `known_hosts` entry for
-that address belongs to another machine). It is not shared to jstarr's
-personal tailnet, so it can't be reached from outside the LAN yet.
+that address belongs to another machine). On the IBP tailnet as
+`ibp-frodo` (`100.86.84.5`, `tag:ibp-station`), not shared to jstarr's
+personal tailnet.
 
 After `deploy` moved to `201d796` the same day, two restarts gave it every
 tile: the first ran the update (2 minutes, including shippy-gui), the
