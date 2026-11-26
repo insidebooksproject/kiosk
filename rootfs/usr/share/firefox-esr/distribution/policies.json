@@ -14,6 +14,7 @@
       "Locked": true
     },
     "PasswordManagerEnabled": false,
+    "SanitizeOnShutdown": true,
     "DisableAppUpdate": true,
     "DisableTelemetry": true,
     "DisableFirefoxStudies": true,

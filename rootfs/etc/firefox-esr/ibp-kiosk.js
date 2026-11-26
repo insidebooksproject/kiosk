@@ -1,9 +1,10 @@
 // IBP station. Debian's firefox-esr reads every .js file in /etc/firefox-esr;
 // these apply to every browser tile (portal, requests, packages). Policies (the
 // extension, lockdown) are in /usr/share/firefox-esr/distribution/policies.json.
-// Each tile's start page is in its own profile's user.js, written by
-// ibp-kiosk-app. The 2 GB Chromebook also gets ibp-kiosk-low-memory.js
-// (feature low-memory).
+// policies.json also makes Firefox forget everything a volunteer did when it
+// closes (SanitizeOnShutdown). Each tile's start page is in its own
+// profile's user.js, written by ibp-kiosk-app. The 2 GB Chromebook also gets
+// ibp-kiosk-low-memory.js (feature low-memory).
 
 // The launcher's Home key ends Firefox with SIGTERM (SIGKILL if it is slow),
 // and a power cut ends it with nothing. Either way, the next start just
