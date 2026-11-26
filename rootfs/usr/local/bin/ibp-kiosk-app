@@ -8,13 +8,14 @@
 #   requests         Firefox, IBP frontend, own profile
 #   packages         Firefox, the IBP frontend's packages page, the
 #                    requests profile
-#   ship-individual  shippy individual, full-screen terminal
-#   ship-bulk        shippy bulk, full-screen terminal
+#   ship-individual  shippy individual, maximized terminal
+#   ship-bulk        shippy bulk, maximized terminal
 #   ship-manual      shippy-gui
-#   wifi             nmtui, full-screen terminal
-#   print-diag       ibp-print-diag, full-screen terminal, waits for a key
+#   wifi             nmtui, maximized terminal
+#   print-diag       ibp-print-diag, maximized terminal, waits for a key
 #
-# How each one runs, and why: docs/apps.md in the ibp-kiosk repo.
+# How each one runs, and why: docs/apps.md in the kiosk repo
+# (https://github.com/insidebooksproject/kiosk).
 #
 # For testing, every path can be overridden from the environment
 # (IBP_KIOSK_CONF_DIR, IBP_KIOSK_SHIPPY_CONFIG, IBP_KIOSK_SHIPPY_GUI_DIR,

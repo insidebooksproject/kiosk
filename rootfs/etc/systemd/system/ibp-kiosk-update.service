@@ -1,4 +1,4 @@
-# IBP station: at every boot, update from the ibp-kiosk repo's `deploy`
+# IBP station: at every boot, update from the kiosk repo's `deploy`
 # branch (see /usr/local/bin/ibp-kiosk-update). It runs in the background
 # and nothing waits for it: the launcher starts as usual.
 [Unit]
