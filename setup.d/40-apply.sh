@@ -4,12 +4,12 @@
 #   sudo systemctl restart getty@tty1
 
 if [ -n "$KIOSK_LIVE" ]; then
-    systemctl daemon-reload
-    systemctl reload ssh
-    systemctl reload systemd-logind
-    systemctl restart zramswap
-    nmcli connection reload
+    live_systemctl daemon-reload
+    live_systemctl reload ssh
+    live_systemctl reload systemd-logind
+    live_systemctl restart zramswap
+    nmcli connection reload || shutting_down
     if [ -f /etc/ibp-kiosk/tailscale-authkey ]; then
-        systemctl start --no-block ibp-kiosk-tailscale-up.service
+        live_systemctl start ibp-kiosk-tailscale-up.service
     fi
 fi

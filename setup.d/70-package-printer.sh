@@ -29,12 +29,12 @@ else
 fi
 
 if [ -n "$KIOSK_LIVE" ]; then
-    systemctl daemon-reload
+    live_systemctl daemon-reload
     udevadm control --reload || true
     if has_feature package-printer; then
-        systemctl restart cups.service
-        systemctl restart --no-block ibp-kiosk-print-server.service
+        live_systemctl restart cups.service
+        live_systemctl restart ibp-kiosk-print-server.service
     else
-        systemctl stop ibp-kiosk-print-server.service
+        live_systemctl stop ibp-kiosk-print-server.service
     fi
 fi
