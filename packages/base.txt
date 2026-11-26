@@ -5,6 +5,8 @@
 # Session: labwc (pulls in xwayland), a background, cursors, fonts, GPU drivers
 labwc
 swaybg
+# The bar across the top of the screen (ibp-kiosk-bar)
+waybar
 adwaita-icon-theme
 fonts-dejavu-core
 libgl1-mesa-dri

@@ -1,0 +1,35 @@
+/* The IBP station's bar: the launcher's colours (launcher/ibp_kiosk/ui.py). */
+* {
+    font-family: "DejaVu Sans", sans-serif;
+    font-size: 18px;
+    min-height: 0;
+}
+window#waybar {
+    background: #0b1427;
+    color: #ffffff;
+}
+#custom-home {
+    background: #e6e6e6;
+    color: #111111;
+    font-weight: bold;
+    padding: 0 18px;
+    margin: 5px 14px 5px 8px;
+    border-radius: 6px;
+}
+#custom-home:hover {
+    background: #cfe0ff;
+}
+#custom-station {
+    font-weight: bold;
+}
+#custom-battery,
+#custom-clock {
+    padding: 0 16px;
+}
+/* On battery and nearly empty (ibp-kiosk-status battery said "problem"). */
+#custom-battery.low {
+    background: #c62828;
+    font-weight: bold;
+    border-radius: 6px;
+    margin: 5px 0;
+}

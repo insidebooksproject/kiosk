@@ -23,12 +23,6 @@ label = "Updates"
 command = ["ibp-kiosk-status", "update"]
 interval = 30
 
-[[status]]
-label = "Battery"
-command = ["ibp-kiosk-status", "battery"]
-interval = 30
-show_text = true
-
 [[admin]]
 id = "wifi"
 label = "Wi-Fi"
