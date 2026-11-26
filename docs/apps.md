@@ -263,7 +263,8 @@ station without feature `shipping` the tool installs itself on first use.
 Every external call has a timeout; the slowest case is about 6 s. The
 launcher's strip shows only a mark and the check's label; the text is the
 chip's tooltip, after the label ("IBP server: Not reachable"), so the texts
-don't repeat the label.
+don't repeat the label. The Battery chip (`show_text = true`) shows its text
+on the chip as well.
 
 | Check | How | Texts |
 |---|---|---|
@@ -272,6 +273,7 @@ don't repeat the label.
 | `printer-shipping` | sysfs only: each `/sys/class/usbmisc/lp*` whose `device/ieee1284_id` has `MDL:PM2411BT` (or `MODEL:`, any case) or whose USB device is `2e3c:5760`; then whether `/dev/usb/lpN` exists and is read-write for the caller (`access()`, no open). Falls back to `/sys/bus/usb/devices` for a printer not bound to usblp | "Ready (BOB)" / "(BETTY)" by serial, "Plugged in, but not allowed (udev rule missing?)", "Plugged in, but not detected (try replugging it)", "Not plugged in" |
 | `printer-package` | `GET http://localhost:40121/health` (the print server's own discovery: a usable label printer queue) | "Ready", "Not plugged in", "Problem (see the print server log)", "Print server not running" |
 | `update` | the first word and the text of `/var/lib/ibp-kiosk/update/status`, written by `ibp-kiosk-update`; a problem only for `failed` | "Not checked yet", "Up to date", "Updating…", "Updated (restart to finish)", "Off on this machine", "Update failed (tell an IBP admin)" |
+| `battery` | sysfs only: the first `/sys/class/power_supply/*` of type `Battery` that is present and isn't a mouse's or keyboard's (`scope` `Device`). The charge is `capacity`; the time left is `charge_now` over `current_avg` (or `current_now`), or `energy_now` over `power_now`, shown when it is 12 hours or less. A problem on battery at 20% or less, or with under 15 minutes left | "Plugged in (86%)", "Charging (40%)", "86%, about 2½ hours left", "25%, about 40 minutes left", "86%, not plugged in" (no estimate yet), "15%, plug in the charger", "Can't read the battery"; nothing at all with no battery, which hides the chip |
 
 `printer-shipping` never opens the device: usblp allows one open, and
 shippy or the watcher may be printing. Reading `ieee1284_id` returns the ID
@@ -424,6 +426,11 @@ is in `CLAUDE.md`, "State"):
   running), `printer-shipping` against a fake sysfs tree (no printer, DYMO
   only, PM2411BT without node, without access, ready as BOB and BETTY,
   model by 1284 `MODEL:` in lower case, plugged in but not bound to usblp).
+- `ibp-kiosk-status battery` (2026-11-26) against fake sysfs trees (no
+  battery, mains only, a mouse's battery, not present, full, charging, on
+  battery by charge and by energy, a negative current, no current reading
+  yet, 20%, a few minutes left, an unreadable value) and on `ibp-bilbo` on
+  mains power ("Plugged in (86%)"). Not seen on battery on real hardware.
 - `ibp-kiosk-app` argument handling (usage, exit 2), each tile's command
   line (`IBP_KIOSK_DRY_RUN=1`), the missing-config and missing-program
   errors, the in-terminal exit status and key pause in a pty (early key

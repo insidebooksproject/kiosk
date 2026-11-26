@@ -30,7 +30,9 @@ in [`docs/design.md`](docs/design.md).
 
 Each is `profiles/<name>/profile.conf` (installed as
 `/etc/ibp-kiosk/profile.conf`) and `station.toml` (the tiles, status strip
-and admin screen, installed as `/etc/ibp-kiosk/station.toml`).
+and admin screen, installed as `/etc/ibp-kiosk/station.toml`). On a laptop
+the strip ends with a Battery chip: the charge, and on battery about how
+long it will last; it turns red at 20%.
 
 ## 1. Build the USB stick
 
