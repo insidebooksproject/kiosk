@@ -113,8 +113,8 @@ one). The 13-inch A1278 (2008-2012) is the one this was written for.
    a connection, unplug the cable and check it changes to the Wi-Fi's name.
 
 On a Mac keyboard the Home key is **Command**. The function keys need
-**fn**: Home is also fn+F12, the admin console is Ctrl+Option+fn+F2 and back
-is Ctrl+Option+fn+F1. The admin screen is Ctrl+Option+A.
+**fn**: the admin console is Ctrl+Option+fn+F2 and back is
+Ctrl+Option+fn+F1. The admin screen is Ctrl+Option+A.
 
 If the screen stays black after the install (the 2008-2010 models have
 Nvidia graphics, driven by nouveau), log in over SSH and add
@@ -128,7 +128,7 @@ Nvidia graphics, driven by nouveau), log in over SSH and add
 - **Closing an app:** the ✕ at the top right returns to the tiles: in
   Firefox (an ordinary window with tabs), and in the title bar of Ship
   Individual, Ship Bulk and Ship Manual, which also names the mode.
-- **Home key:** the Windows (Super) key on its own, or F12, closes the
+- **Home key:** the Windows (Super) key on its own closes the
   current app and shows the tiles. On the Chromebook it is the Search key.
 - **Admin screen:** Ctrl+Alt+A on the tiles: hostname, addresses, version,
   Wi-Fi and (with a label printer) the printer check.

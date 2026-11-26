@@ -51,17 +51,13 @@
     </font>
   </theme>
 
-  <!-- The Home key: Super alone (pressed and released with no other key),
-       or F12 for keyboards without one. It closes the current app and shows
-       the tiles. -->
+  <!-- The Home key: Super alone (pressed and released with no other key).
+       It closes the current app and shows the tiles. -->
   <keyboard>
     <keybind key="Super_L" onRelease="yes">
       <action name="Execute" command="/usr/local/bin/ibp-kiosk-launcher home" />
     </keybind>
     <keybind key="Super_R" onRelease="yes">
-      <action name="Execute" command="/usr/local/bin/ibp-kiosk-launcher home" />
-    </keybind>
-    <keybind key="F12" onRelease="yes">
       <action name="Execute" command="/usr/local/bin/ibp-kiosk-launcher home" />
     </keybind>
   </keyboard>
