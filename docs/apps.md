@@ -70,7 +70,9 @@ The start pages can be changed without editing the script: an optional
   (`ibp-book-portal-kiosk`'s `policies.json`), which sends a signed-out
   volunteer to the login (ID.me). The IBP frontend's is the "App" address in
   `ops/ibp-server.md` (the meta repo): `http://192.168.1.156/`, LAN and tailnet
-  only, the same server address `shippy`'s `sample.ini` uses. The Pi's LAN
+  only, the same server address `shippy`'s `sample.ini` uses. On the IBP
+  tailnet (since 2026-11-26) the server is `http://ibp-server/` or
+  `http://100.92.207.121/`; the defaults still use the LAN address. The Pi's LAN
   address is static. (`http://ibp-server.local/` also works where mDNS does;
   the extension uses that name.)
 - **One `policies.json` for all.** Firefox reads policies system-wide, so
@@ -325,10 +327,17 @@ enables the timer only when that file exists (installed from the secret
 `log-upload.conf`, root 0600):
 
 ```
-SHARE=//100.119.68.125/ibp-logs-<station>
+SHARE=//192.168.1.156/ibp-logs-<station>
 USERNAME=ibplogs-<station>
 PASSWORD=...
 ```
+
+`192.168.1.156` is ibp-server's LAN address. Its old personal-tailnet
+address `100.119.68.125` (named in older examples, including the comment in
+`ibp-kiosk-log-upload`) is gone since ibp-server moved to the IBP tailnet on
+2026-11-26; there it is `ibp-server` (`100.92.207.121`), which
+`tag:ibp-station` reaches on tcp 445. Pointing stations at it is in the
+workspace's `BACKLOG.md`.
 
 The script reads the file (never sources it; one pair of quotes around a
 value is removed), writes a mount.cifs credentials file in the service's
