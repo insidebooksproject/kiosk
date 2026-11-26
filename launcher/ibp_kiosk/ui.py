@@ -45,7 +45,6 @@ POWER_COMMANDS = {
 STYLE = """
 QWidget#root { background: #14213d; }
 QLabel { color: #ffffff; background: transparent; }
-QLabel#station { font-size: 34px; font-weight: bold; }
 QLabel#heading { font-size: 40px; font-weight: bold; }
 QLabel#sentence { font-size: 28px; }
 QLabel#small { font-size: 20px; }
@@ -257,9 +256,7 @@ class MainWindow(QWidget):
 
         header = QHBoxLayout()
         header.setContentsMargins(32, 20, 32, 8)
-        self.station = QLabel(config.name if config else socket.gethostname())
-        self.station.setObjectName("station")
-        header.addWidget(self.station)
+        # No station name here: the bar above the window shows it.
         header.addStretch(1)
         self.restart_button = Button("Restart")
         self.restart_button.clicked.connect(lambda: self.ask_power("reboot"))

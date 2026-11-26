@@ -22,7 +22,6 @@ TILES = (
     Tile("e", "Fifth", ("true",)),
 )
 CONFIG = Config(
-    name="Test station",
     tiles=TILES,
     statuses=(StatusCheck("Network", ("true",)), StatusCheck("Label printer", ("true",))),
     admin=(Tile("adm", "Admin thing", ("sleep", "30")),),
@@ -52,9 +51,8 @@ def admin_key(window: MainWindow) -> None:
     QTest.keySequence(window.windowHandle(), QKeySequence(ADMIN_KEY))
 
 
-def test_tiles_shown_with_station_name(window: MainWindow) -> None:
+def test_tiles_shown(window: MainWindow) -> None:
     assert window.page is window.tiles_page
-    assert window.station.text() == "Test station"
     assert [b.tile.id for b in window.grid.buttons] == ["ok", "bad", "c", "d", "e"]
     assert window.grid.columns == 3
     assert window.grid.buttons[0].hasFocus()

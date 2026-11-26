@@ -49,7 +49,6 @@ def station(tmp_path: Path, runtime_dir: Path) -> Iterator[tuple[dict[str, str],
     config = tmp_path / "station.toml"
     config.write_text(f"""
 [station]
-name = "Test"
 autostart = "app"
 
 [[tile]]
