@@ -287,7 +287,8 @@ personal tailnet.
 After `deploy` moved to `201d796` the same day, two restarts gave it every
 tile: the first ran the update (2 minutes, including shippy-gui), the
 second started the launcher with the new tiles. The print server, CUPS and
-the label watcher run; 435 MB used at the tiles. It has no shippy,
+the label watcher run; 435 MB used at the tiles. Updated again to `1fafee0`
+(one "Printer" status chip) the same day. It has no shippy,
 shippy-gui or log-share configs, so the three shipping tiles fail until
 they are added (rerun `setup.sh` with a secrets directory). Its stick still
 holds the Wi-Fi passwords, admin password hash and tailnet station key.
