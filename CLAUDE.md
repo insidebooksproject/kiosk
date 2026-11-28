@@ -304,11 +304,8 @@ passwords, admin password hash and tailnet station key.
 Reinstalled from the stick 2026-11-25 and checked over SSH
 (`ibp@ibp-bilbo.local`): `product_name` is `MacBookPro9,2`, Ethernet and
 Wi-Fi are both up, it joined the IBP tailnet as `ibp-bilbo`, and the boot
-updater brought it to the current `deploy`. It is at jstarr's home, where
-the server's LAN address isn't reachable, so the IBP server chip says "Not
-reachable". `ibp-server` is on the IBP tailnet since 2026-11-26, so the chip
-will work there once the station's configs point at its tailnet name (the
-workspace's `BACKLOG.md`).
+updater brought it to the current `deploy`. It is at IBP, with `ibp-frodo`
+(as of 2026-11-28); its IBP server chip has not been checked there.
 shippy-gui's config on the machine has the real Google Maps key (Bitwarden
 `Google Maps API (IBP)`, set by hand 2026-11-25); its IBP and EasyPost keys
 and all of shippy's are still placeholders. The first update with the
