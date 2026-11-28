@@ -434,7 +434,15 @@ JSONL, one per UTC day:
 
 The journal's place is kept by `journalctl --cursor-file`
 (`/var/lib/ibp-kiosk-log-upload/cursor`), saved only once the entries are
-in the day's file, so a run that fails part-way exports them again.
+in the day's file, so a run that fails part-way exports them again. Both
+files are written whole and renamed into place (the day's journal file is
+copied, the new entries added to the copy, and the copy renamed over it;
+the temporary files are in the state directory, outside `journal/`), so a
+run killed part-way (a shutdown, the unit's timeout) never leaves a cut-off
+line. A run killed after the rename and before the cursor is saved exports
+the same entries again at the next run: whole lines, with the same
+`__CURSOR`, which the digest can dedupe on. That is the trade made: a rare
+duplicate rather than a lost entry.
 
 What it doesn't break:
 
@@ -579,6 +587,11 @@ is in `CLAUDE.md`, "State"):
   and quotes, valid JSON), the same list at the next run (rewritten with
   the new time, and copied to the share), a user listing that fails (the
   file unchanged, a warning), and cleared (emptied, also on the share).
+  Crash safety (2026-11-28): a failed rename of the day's file (the file
+  and cursor unchanged, the entries exported once at the next run); a lost
+  cursor save after the rename (the entries twice, whole lines); 40 runs
+  killed with SIGKILL at random moments while 1,600 entries came in, then
+  drained (every line valid JSON, none missing).
 - `systemd-analyze verify` on the units (no errors besides the scripts not
   being installed on the build machine).
 

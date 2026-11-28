@@ -109,6 +109,11 @@ ibp_matches() {
 # Append the IBP journal entries at warning or above since the last run to
 # today's journal-<date>.jsonl, journald's JSON as is. The cursor is kept
 # only once they are written, so a failed run exports them again.
+# The day's file is never appended to in place: the new entries go to a copy
+# of it, renamed over it, so a run killed part-way (a shutdown, the unit's
+# timeout) leaves it as it was, never with a cut-off line. Killed after the
+# rename and before the cursor is saved, the next run exports the same
+# entries again: whole lines, with the same __CURSOR.
 export_journal() {
     day=$SPOOL/journal-$(date -u +%Y-%m-%d).jsonl
     if [ "$(size_of "$day")" -ge "$MAX_DAY_BYTES" ]; then
@@ -150,7 +155,15 @@ EOF
         return 1
     fi
     if [ -s "$RUN/journal.jsonl" ]; then
-        cat "$RUN/journal.jsonl" >>"$day" || return 1
+        # In $STATE, not $SPOOL: on the same file system, and never copied
+        # to the share.
+        tmp=$STATE/journal.tmp
+        rm -f "$tmp"
+        if [ -f "$day" ]; then
+            cp "$day" "$tmp" || return 1
+        fi
+        cat "$RUN/journal.jsonl" >>"$tmp" || return 1
+        mv "$tmp" "$day" || return 1
     fi
     if [ -s "$RUN/cursor" ]; then
         cp "$RUN/cursor" "$STATE/cursor.new" || return 1

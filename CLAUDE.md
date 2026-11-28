@@ -49,11 +49,13 @@ this one grew from.
   Debian's PySide6 packages (no venv, no network needed to start it).
 - `/var/lib/ibp-kiosk-log-upload/` (root 0700, the upload's
   `StateDirectory=`): the journal export's `cursor` and `journal/`, the
-  files waiting to be copied (kept 30 days); its temporary
-  `failed-units.tmp` sits beside them, never in `journal/`.
+  files waiting to be copied (kept 30 days); its temporary files
+  (`journal.tmp`, `failed-units.tmp`) sit beside them, never in
+  `journal/`.
 - The journal export's files on the share (the digest on ibp-server reads
   them, `docs/apps.md`, "Journal export"): `<hostname>/journal/` holds
-  `journal-<date>.jsonl` (entries appended) and
+  `journal-<date>.jsonl` (entries appended, whole lines only, a rare
+  duplicate after a crash, same `__CURSOR`) and
   `failed-units-<date>.jsonl` (rewritten at every run with the units failed
   now; empty when none is), one of each per UTC day.
 - Log priorities: a line the launcher, `ibp-kiosk-app` or
