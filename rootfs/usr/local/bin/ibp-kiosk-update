@@ -37,6 +37,17 @@ log() {
     echo "ibp-kiosk-update: $*"
 }
 
+# The same at error priority when stdout is the journal (systemd reads the
+# <3>), so the log upload exports it.
+log_error() {
+    if [ -n "${JOURNAL_STREAM:-}" ] &&
+        [ "$(stat -L -c '%d:%i' "/proc/$$/fd/1" 2>/dev/null)" = "$JOURNAL_STREAM" ]; then
+        echo "<3>ibp-kiosk-update: $*"
+    else
+        log "$*"
+    fi
+}
+
 # status STATE TEXT: what `ibp-kiosk-status update` reports.
 status() {
     printf '%s %s\n' "$1" "$2" >"$STATE/status.new" && mv "$STATE/status.new" "$STATE/status"
@@ -104,7 +115,7 @@ log "updating from ${installed:-the installed version} to $remote"
 status updating "Updating…"
 
 fail() {
-    log "$1; keeping the installed version and trying again at the next boot"
+    log_error "$1; keeping the installed version and trying again at the next boot"
     rm -rf "$STATE/src.new"
     status failed "Update failed (tell an IBP admin)"
     exit 1

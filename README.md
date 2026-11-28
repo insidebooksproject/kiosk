@@ -137,7 +137,9 @@ Nvidia graphics, driven by nouveau), log in over SSH and add
   browser sign-in: `sudo tailscale up --hostname=$(hostname) --auth-key=<key>`.
 - **Restart the session:** `sudo systemctl restart getty@tty1`.
 - **Logs:** `journalctl -t ibp-kiosk` (labwc, the launcher and the apps).
-  The apps' own logs: `docs/apps.md`, "Where things are on a station".
+  The apps' own logs: `docs/apps.md`, "Where things are on a station". The
+  log upload sends the journal's IBP warnings and errors to the server too
+  (`docs/apps.md`, "Journal export").
 - **Wi-Fi:** the admin screen's Wi-Fi entry (`nmtui`); from the console,
   `sudo nmtui`.
 

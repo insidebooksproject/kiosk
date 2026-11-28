@@ -1,16 +1,25 @@
 #!/bin/sh
-# ibp-kiosk-log-upload: copy the kiosk user's label-printer logs to this
-# station's Samba share on ibp-server, into a folder named after this host.
-# Run as root by ibp-kiosk-log-upload.service (every 15 minutes, from its
-# timer), which gives it a private mount namespace and a root-only runtime
-# directory. Replaces the Windows laptops' "IBP Log Upload" task (robocopy).
+# ibp-kiosk-log-upload: copy the kiosk user's label-printer logs, the print
+# server's logs, and this station's journal errors, to its Samba share on
+# ibp-server, into a folder named after this host. Run as root by ibp-kiosk-log-upload.service (every
+# 15 minutes, from its timer), which gives it a private mount namespace, a
+# root-only runtime directory and a root-only state directory. Replaces the
+# Windows laptops' "IBP Log Upload" task (robocopy).
 #
 # /etc/ibp-kiosk/log-upload.conf (root 0600), one VAR=value per line:
-#   SHARE=//host/share     e.g. //100.119.68.125/ibp-logs-<station>
+#   SHARE=//host/share     e.g. //192.168.1.156/ibp-logs-<station>
 #   USERNAME=...
 #   PASSWORD=...
 #   DOMAIN=...             optional
 # Values may be in single or double quotes. The file is read, not sourced.
+#
+# Before copying, it exports the journal into the state directory
+# (journal/, below): the IBP entries at warning or above since its last run,
+# and the units failed now. Those files are copied to
+# <share>/<host>/journal/. The export is best effort: when it fails, the
+# logs are still copied; when the share can't be reached, the files wait in
+# the state directory for the next run. docs/apps.md, "Log upload", has the
+# format and the limits.
 #
 # It only adds and updates files on the share (rsync without --delete):
 # nothing there is ever deleted. The password goes to mount.cifs in a
@@ -19,10 +28,45 @@ set -eu
 
 CONF=${IBP_KIOSK_LOG_UPLOAD_CONF:-/etc/ibp-kiosk/log-upload.conf}
 LOGS=${IBP_KIOSK_LOG_DIR:-/home/kiosk/.local/state/ibp-printing/logs}
+# The print server's, run as its own user: copied to <host>/print-server/,
+# so that no file name can clash with the kiosk user's.
+PRINT_LOGS=${IBP_KIOSK_PRINT_LOG_DIR:-/var/lib/ibp-kiosk-print/.local/state/ibp-printing/logs}
 RUN=${RUNTIME_DIRECTORY:-/run/ibp-kiosk-log-upload}
+STATE=${STATE_DIRECTORY:-/var/lib/ibp-kiosk-log-upload}
+KIOSK_USER=${IBP_KIOSK_LOG_UPLOAD_USER:-kiosk}
+SPOOL=$STATE/journal
+# Limits on the export: entries per run (the rest follow at the next runs),
+# bytes of journal entries per day (past it, they wait in the journal until
+# the next day), and days a spooled file is kept on this machine.
+MAX_ENTRIES=${IBP_KIOSK_JOURNAL_MAX_ENTRIES:-500}
+MAX_DAY_BYTES=${IBP_KIOSK_JOURNAL_MAX_DAY_BYTES:-4194304}
+KEEP_DAYS=30
+# The journal fields exported (journalctl's JSON always adds
+# __REALTIME_TIMESTAMP, __MONOTONIC_TIMESTAMP, __CURSOR, __SEQNUM,
+# __SEQNUM_ID and _BOOT_ID), and those whose values starting with "ibp-"
+# pick the entries.
+FIELDS=MESSAGE,PRIORITY,SYSLOG_IDENTIFIER,_SYSTEMD_UNIT,_SYSTEMD_USER_UNIT,UNIT,USER_UNIT,_HOSTNAME,_PID,_COMM,_TRANSPORT,MESSAGE_ID,ERRNO,EXIT_CODE,EXIT_STATUS,JOB_RESULT,CODE_FILE,CODE_LINE,CODE_FUNC
+MATCH_FIELDS="SYSLOG_IDENTIFIER _SYSTEMD_UNIT _SYSTEMD_USER_UNIT UNIT USER_UNIT"
 
 log() {
     printf 'ibp-kiosk-log-upload: %s\n' "$*" >&2
+}
+
+# Whether stderr is the journal (as under systemd): JOURNAL_STREAM names it.
+to_journal=
+if [ -n "${JOURNAL_STREAM:-}" ] &&
+    [ "$(stat -L -c '%d:%i' "/proc/$$/fd/2" 2>/dev/null)" = "$JOURNAL_STREAM" ]; then
+    to_journal=1
+fi
+
+# The same at warning priority in the journal (systemd reads the <4>), so
+# the next export picks it up.
+warn() {
+    if [ -n "$to_journal" ]; then
+        printf '<4>ibp-kiosk-log-upload: %s\n' "$*" >&2
+    else
+        log "$*"
+    fi
 }
 
 # The value of KEY in $CONF: the last KEY= line, one pair of surrounding
@@ -33,12 +77,181 @@ conf_value() {
         -e 's/^[[:space:]]*"\(.*\)"[[:space:]]*$/\1/'
 }
 
+# STRING with backslashes and double quotes escaped for JSON.
+json_escape() {
+    printf '%s' "$1" | sed -e 's/\\/\\\\/g' -e 's/"/\\"/g'
+}
+
+# FILE's size in bytes, 0 if it doesn't exist.
+size_of() {
+    if [ -f "$1" ]; then
+        wc -c <"$1"
+    else
+        echo 0
+    fi
+}
+
+# --------------------------------------------------------- journal export
+# These functions run in a condition (`f || warn ...`), where set -e is off:
+# every step that can fail says `|| return 1`.
+
+# FIELD=value, one per line, for every value of the match fields that
+# starts with "ibp-": the IBP units (system and user), the identifiers
+# ibp-kiosk (the session: labwc, the launcher) and ibp-kiosk-app, and the
+# messages systemd writes about those units.
+ibp_matches() {
+    for field in $MATCH_FIELDS; do
+        values=$(timeout 30 journalctl -q -F "$field") || return 1
+        printf '%s\n' "$values" | sed -n "/^ibp-/s/^/$field=/p"
+    done
+}
+
+# Append the IBP journal entries at warning or above since the last run to
+# today's journal-<date>.jsonl, journald's JSON as is. The cursor is kept
+# only once they are written, so a failed run exports them again.
+# The day's file is never appended to in place: the new entries go to a copy
+# of it, renamed over it, so a run killed part-way (a shutdown, the unit's
+# timeout) leaves it as it was, never with a cut-off line. Killed after the
+# rename and before the cursor is saved, the next run exports the same
+# entries again: whole lines, with the same __CURSOR.
+export_journal() {
+    day=$SPOOL/journal-$(date -u +%Y-%m-%d).jsonl
+    if [ "$(size_of "$day")" -ge "$MAX_DAY_BYTES" ]; then
+        warn "journal export: over $MAX_DAY_BYTES bytes today; the rest waits in the journal until tomorrow"
+        return 0
+    fi
+    matches=$(ibp_matches) || return 1
+    set --
+    while IFS= read -r match; do
+        [ -n "$match" ] || continue
+        [ $# -eq 0 ] || set -- "$@" +
+        set -- "$@" "$match"
+    done <<EOF
+$matches
+EOF
+    # Nothing in the journal comes from IBP yet.
+    [ $# -gt 0 ] || return 0
+
+    rm -f "$RUN/cursor" "$RUN/journal.jsonl" "$RUN/journal.err"
+    if [ -s "$STATE/cursor" ]; then
+        cp "$STATE/cursor" "$RUN/cursor" || return 1
+    fi
+    # With a cursor, -n is the first MAX_ENTRIES after it; without one (the
+    # first run), the newest MAX_ENTRIES. Fields over 4096 bytes come out
+    # as null (no --all).
+    if ! timeout 60 journalctl -q --no-pager -o json -p warning \
+        -n "$MAX_ENTRIES" --output-fields="$FIELDS" \
+        --cursor-file="$RUN/cursor" "$@" \
+        >"$RUN/journal.jsonl" 2>"$RUN/journal.err"; then
+        err=$(head -n 1 "$RUN/journal.err")
+        case $err in
+        *[Cc]ursor*)
+            # A cursor journalctl can't use would fail every run.
+            rm -f "$STATE/cursor"
+            warn "journalctl: ${err}; starting again from the newest entries"
+            ;;
+        *) warn "journalctl failed: ${err:-no message (timed out?)}" ;;
+        esac
+        return 1
+    fi
+    if [ -s "$RUN/journal.jsonl" ]; then
+        # In $STATE, not $SPOOL: on the same file system, and never copied
+        # to the share.
+        tmp=$STATE/journal.tmp
+        rm -f "$tmp"
+        if [ -f "$day" ]; then
+            cp "$day" "$tmp" || return 1
+        fi
+        cat "$RUN/journal.jsonl" >>"$tmp" || return 1
+        mv "$tmp" "$day" || return 1
+    fi
+    if [ -s "$RUN/cursor" ]; then
+        cp "$RUN/cursor" "$STATE/cursor.new" || return 1
+        mv "$STATE/cursor.new" "$STATE/cursor" || return 1
+    fi
+}
+
+# "UNIT name" for each failed system unit, then "USER_UNIT name" for each of
+# the kiosk user's (when its user manager runs), sorted. Fails if a list
+# can't be read, so a failure never reads as "nothing failed".
+failed_units() {
+    system=$(timeout 20 systemctl list-units --failed --plain --no-legend --full) ||
+        return 1
+    user=
+    if uid=$(id -u "$KIOSK_USER" 2>/dev/null) &&
+        [ -S "/run/user/$uid/systemd/private" ]; then
+        gid=$(id -g "$KIOSK_USER") || return 1
+        # As the kiosk user: its manager answers only its own uid.
+        user=$(XDG_RUNTIME_DIR=/run/user/$uid timeout 20 \
+            setpriv --reuid="$uid" --regid="$gid" --clear-groups \
+            systemctl --user list-units --failed --plain --no-legend --full) ||
+            return 1
+    fi
+    {
+        printf '%s\n' "$system" | awk 'NF { print "UNIT", $1 }'
+        printf '%s\n' "$user" | awk 'NF { print "USER_UNIT", $1 }'
+    } | LC_ALL=C sort
+}
+
+# Rewrite today's failed-units-<date>.jsonl with the units failed now: one
+# line per unit, shaped like a journal entry (UNIT or USER_UNIT names it),
+# or an empty file when none is. Every run rewrites it, so a unit that stays
+# failed is in the file of each day the station runs, and the day's file is
+# the last list of that day. It is emptied, not removed, when nothing is
+# failed: the share would otherwise keep the list written earlier that day
+# (no --delete). Written to a temporary file and renamed, so it is never
+# half-written. A list that can't be read leaves the file as it was.
+export_failed_units() {
+    list=$(failed_units) || {
+        warn "failed units: could not list them"
+        return 1
+    }
+    now=$(date -u '+%s%6N %Y-%m-%d') || return 1
+    stamp=${now% *}
+    file=$SPOOL/failed-units-${now#* }.jsonl
+    host=$(json_escape "$(uname -n)")
+    start='{"__REALTIME_TIMESTAMP":"'$stamp'","_HOSTNAME":"'$host'","SYSLOG_IDENTIFIER":"ibp-kiosk-log-upload","PRIORITY":"3"'
+    tmp=$STATE/failed-units.tmp
+    {
+        if [ -n "$list" ]; then
+            printf '%s\n' "$list" | while read -r field unit; do
+                unit=$(json_escape "$unit")
+                printf '%s,"MESSAGE":"%s failed","%s":"%s"}\n' \
+                    "$start" "$unit" "$field" "$unit" || exit 1
+            done
+        fi
+    } >"$tmp" || return 1
+    mv "$tmp" "$file" || return 1
+}
+
+# ----------------------------------------------------------------- main
+
 if [ ! -r "$CONF" ]; then
     log "no $CONF; nothing to do"
     exit 0
 fi
-if [ ! -d "$LOGS" ]; then
-    log "no logs yet ($LOGS); nothing to do"
+
+umask 077
+mkdir -p "$RUN"
+if mkdir -p "$SPOOL"; then
+    export_journal || warn "journal export failed; going on with the upload"
+    rm -f "$RUN/cursor" "$RUN/journal.jsonl" "$RUN/journal.err"
+    export_failed_units || warn "failed-units export failed; going on with the upload"
+    # Spooled files are kept a month, uploaded or not.
+    find "$SPOOL" -type f -name '*.jsonl' -mtime +"$KEEP_DAYS" -exec rm -f {} + ||
+        warn "could not remove old files in $SPOOL"
+else
+    warn "cannot create $SPOOL; no journal export this time"
+fi
+
+have_logs=
+[ -d "$LOGS" ] && have_logs=1
+have_print_logs=
+[ -d "$PRINT_LOGS" ] && have_print_logs=1
+have_journal=
+[ -n "$(ls -A "$SPOOL" 2>/dev/null)" ] && have_journal=1
+if [ -z "$have_logs$have_print_logs$have_journal" ]; then
+    log "no logs yet ($LOGS, $PRINT_LOGS) and no journal export; nothing to do"
     exit 0
 fi
 
@@ -59,8 +272,6 @@ if [ -z "$user" ] || [ -z "$password" ]; then
 fi
 
 host=$(uname -n)
-umask 077
-mkdir -p "$RUN"
 mnt=$RUN/share
 cred=$RUN/credentials
 mkdir -p "$mnt"
@@ -90,5 +301,17 @@ rm -f "$cred"
 mkdir -p "$mnt/$host"
 # -rt: files and times only (the share decides owners and modes);
 # --modify-window: SMB keeps coarser timestamps; no --delete, ever.
-timeout 480 rsync -rt --modify-window=2 --timeout=60 "$LOGS/" "$mnt/$host/"
-log "copied $LOGS to $share/$host"
+if [ -n "$have_logs" ]; then
+    timeout 480 rsync -rt --modify-window=2 --timeout=60 "$LOGS/" "$mnt/$host/"
+    log "copied $LOGS to $share/$host"
+fi
+if [ -n "$have_print_logs" ]; then
+    mkdir -p "$mnt/$host/print-server"
+    timeout 240 rsync -rt --modify-window=2 --timeout=60 "$PRINT_LOGS/" "$mnt/$host/print-server/"
+    log "copied $PRINT_LOGS to $share/$host/print-server"
+fi
+if [ -n "$have_journal" ]; then
+    mkdir -p "$mnt/$host/journal"
+    timeout 120 rsync -rt --modify-window=2 --timeout=60 "$SPOOL/" "$mnt/$host/journal/"
+    log "copied the journal export to $share/$host/journal"
+fi

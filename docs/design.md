@@ -152,7 +152,10 @@ and the stick is wiped after use.
 The apps already write to `~/.local/state/ibp-printing/logs` on Linux. A
 systemd timer copies that directory to the machine's own Samba share on
 `ibp-server` every 15 minutes, replacing the "IBP Log Upload" task. The share
-password is in a root-only credentials file.
+password is in a root-only credentials file. Before copying, it exports the
+journal's IBP warnings and errors and the failed units (since 2026-11-28),
+for the weekly error digest on `ibp-server` (`docs/apps.md`, "Journal
+export").
 
 ### Power
 

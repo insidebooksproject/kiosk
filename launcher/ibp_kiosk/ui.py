@@ -419,6 +419,10 @@ class MainWindow(QWidget):
         if self.quitting:
             return
         if result.failed:
+            # The volunteer sees an error, so the journal gets one too.
+            log.error("%s: showing the failure screen (exit status %s after %.1f s%s)",
+                      result.tile.id, result.returncode, result.seconds,
+                      f"; {result.error}" if result.error else "")
             self.show_failure(result)
         else:
             self.show_home()

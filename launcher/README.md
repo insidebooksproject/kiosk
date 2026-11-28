@@ -48,7 +48,8 @@ Options: `--config PATH` (or `IBP_KIOSK_CONFIG`; default
   stdout and stderr merged into one pipe that is always drained. Each line is
   copied to the launcher's stderr as `[tile-id] line` (so it reaches the
   journal) and the last 15 are kept. If the app exits non-zero, or within 3
-  seconds, the failure screen shows them, unless the launcher stopped it.
+  seconds, the failure screen shows them, unless the launcher stopped it,
+  and the launcher logs an ERROR naming the tile and its exit status.
   When the app exits, the rest of its process group gets SIGTERM. While it
   runs, the launcher's own page (behind the app) says so and has a Close
   button.
@@ -66,7 +67,12 @@ Options: `--config PATH` (or `IBP_KIOSK_CONFIG`; default
   click the chip). Changes are logged.
 - **Errors.** A missing or invalid `station.toml` shows a full-screen message
   with the reason and the power buttons. Unexpected exceptions are logged to
-  stderr and never end the launcher. SIGTERM, SIGINT or SIGHUP stop the
+  stderr and never end the launcher. When stderr is the journal (the session
+  runs labwc under `systemd-cat`, which sets `JOURNAL_STREAM`), each line of
+  a log record starts with its syslog priority (`<3>` for ERROR, `<4>` for
+  WARNING), so journald records it at that priority and the station's log
+  upload, which exports warning and above, picks it up; app output copied
+  as `[tile-id] line` stays at info. SIGTERM, SIGINT or SIGHUP stop the
   running app, then the launcher.
 - The Wayland app_id is `ibp-kiosk-launcher` (for labwc window rules).
 

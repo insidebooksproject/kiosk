@@ -12,7 +12,7 @@ the base system and the apps is in `CLAUDE.md`; the background is in
 | `rootfs/usr/local/bin/ibp-kiosk-app` | Starts one tile's app (below) |
 | `rootfs/usr/local/bin/ibp-kiosk-status` | The status strip's checks |
 | `rootfs/usr/local/bin/ibp-kiosk-tool` | Installs, upgrades and runs shippy, shippy-gui and ibp-printing as uv tools |
-| `rootfs/usr/local/bin/ibp-kiosk-log-upload` | Copies the label-printer logs to the Samba share |
+| `rootfs/usr/local/bin/ibp-kiosk-log-upload` | Copies the label-printer and print-server logs and the journal export to the Samba share |
 | `rootfs/usr/share/firefox-esr/distribution/policies.json` | Firefox policies (every browser tile) |
 | `rootfs/etc/firefox-esr/ibp-kiosk.js` | Firefox prefs (every browser tile) |
 | `rootfs/etc/gtk-3.0/settings.ini` | Firefox's window buttons: close only |
@@ -382,14 +382,102 @@ value is removed), writes a mount.cifs credentials file in the service's
 root-only runtime directory, mounts the share in the service's private mount
 namespace (`PrivateMounts=yes`, so it never outlives the service), deletes
 the credentials file, and runs `rsync -rt --modify-window=2` (no `--delete`)
-from `/home/kiosk/.local/state/ibp-printing/logs/` to `<share>/<hostname>/`.
-The password is never on a command line. The host-named folder keeps a
+from `/home/kiosk/.local/state/ibp-printing/logs/` to `<share>/<hostname>/`,
+and the print server's log directory
+(`/var/lib/ibp-kiosk-print/.local/state/ibp-printing/logs/`, since
+2026-11-28) to `<share>/<hostname>/print-server/` (its own folder: both
+directories can hold a `printer.log`). Either is skipped when it doesn't
+exist. The password is never on a command line. The host-named folder keeps a
 station that reuses an old laptop's share from overwriting that laptop's
 Windows logs (same file names). Each station still needs its own share and
 account on ibp-server (`ops/ibp-server.md`, "Samba shares").
 
+### Journal export
+
+Before it mounts the share, the script exports what the station's journal
+has to say about IBP into its state directory
+(`/var/lib/ibp-kiosk-log-upload/`, root 0700), and the rsync above then
+copies `journal/` there to `<share>/<hostname>/journal/` (also without
+`--delete`). It is the kiosk's part of the workspace's error reporting
+(`docs/error-reporting.md` in the IBP workspace): the launcher, labwc, the
+tile scripts and the IBP units write to the journal, not to files, so the
+weekly digest on ibp-server reads them from there. Two kinds of file, both
+JSONL, one per UTC day:
+
+- `journal-<YYYY-MM-DD>.jsonl`: journal entries at warning or above
+  (`journalctl -p warning -o json`) since the last run, as journald writes
+  them, field names unchanged (`__REALTIME_TIMESTAMP`, `MESSAGE`,
+  `PRIORITY`, `SYSLOG_IDENTIFIER`, `_SYSTEMD_UNIT`, ...). Only these fields
+  are kept: `MESSAGE PRIORITY SYSLOG_IDENTIFIER _SYSTEMD_UNIT
+  _SYSTEMD_USER_UNIT UNIT USER_UNIT _HOSTNAME _PID _COMM _TRANSPORT
+  MESSAGE_ID ERRNO EXIT_CODE EXIT_STATUS JOB_RESULT CODE_FILE CODE_LINE
+  CODE_FUNC`, plus the ones journalctl always adds (`__CURSOR`,
+  `__MONOTONIC_TIMESTAMP`, `__SEQNUM`, `__SEQNUM_ID`, `_BOOT_ID`); a field
+  over 4096 bytes is `null`. An entry is IBP's when one of
+  `SYSLOG_IDENTIFIER`, `_SYSTEMD_UNIT`, `_SYSTEMD_USER_UNIT`, `UNIT` or
+  `USER_UNIT` starts with `ibp-`: the session (`ibp-kiosk`: labwc, the
+  launcher and what the tiles print), `ibp-kiosk-app`, every `ibp-kiosk-*`
+  system unit, the label watcher (a user unit), and systemd's own messages
+  about those units (a failed run, a restart). `journalctl -F` finds the
+  values, so a new `ibp-` unit is included without a change here.
+- `failed-units-<YYYY-MM-DD>.jsonl`: the units failed now (`systemctl
+  --failed`, the system's and the `kiosk` user manager's when it runs),
+  rewritten whole at every run, so the day's file is that day's last list
+  and a unit that stays failed is in the file of every day the station
+  runs. Each line is shaped like a journal entry: `__REALTIME_TIMESTAMP`
+  (microseconds, one value for the whole list, the run's time),
+  `_HOSTNAME`, `SYSLOG_IDENTIFIER` `ibp-kiosk-log-upload`, `PRIORITY` `3`,
+  `MESSAGE` `<unit> failed`, and `UNIT` (system) or `USER_UNIT` (kiosk's)
+  with the unit's name. Nothing failed is an empty file: emptied rather
+  than removed, since the share (no `--delete`) would keep a list written
+  earlier that day. When a list can't be read, the file stays as it was.
+
+The journal's place is kept by `journalctl --cursor-file`
+(`/var/lib/ibp-kiosk-log-upload/cursor`), saved only once the entries are
+in the day's file, so a run that fails part-way exports them again. Both
+files are written whole and renamed into place (the day's journal file is
+copied, the new entries added to the copy, and the copy renamed over it;
+the temporary files are in the state directory, outside `journal/`), so a
+run killed part-way (a shutdown, the unit's timeout) never leaves a cut-off
+line. A run killed after the rename and before the cursor is saved exports
+the same entries again at the next run: whole lines, with the same
+`__CURSOR`, which the digest can dedupe on. That is the trade made: a rare
+duplicate rather than a lost entry.
+
+What it doesn't break:
+
+- **The export fails** (journalctl or systemctl errors, a full disk): a
+  warning in the journal (`<4>`, so the next export carries it), and the
+  label-printer logs are copied as before. A cursor journalctl refuses is
+  deleted, and the next run starts again from the newest entries (some
+  entries may then be exported twice).
+- **No network, or the share can't be reached:** the files stay in
+  `/var/lib/ibp-kiosk-log-upload/journal/` and go at the next run that
+  mounts the share; the unit fails as before.
+- **No label-printer logs yet:** the journal export is still copied (until
+  now the run stopped there).
+
+Limits on what one run writes: at most 500 entries (`-n 500` after the
+cursor; the next runs take the rest, so nothing is skipped), each field at
+most 4096 bytes, and at most 4 MiB of journal entries a day: past that the
+export stops for the day and the rest waits in the journal (journald's own
+size limits apply). The spooled files are deleted after 30 days, copied or
+not. The unit's `TimeoutStartSec` went from 10 to 20 minutes for the extra
+steps (each has its own `timeout`).
+
+What the export finds depends on the priority an entry is logged at. A
+service's or `systemd-cat`'s output is logged at info unless a line starts
+with a syslog prefix such as `<3>`: the launcher adds one to its own log
+lines when its stderr is the journal (`JOURNAL_STREAM`), `ibp-kiosk-app`
+logs an app that stopped with an error at `err`, and so does
+`ibp-kiosk-update` a failed update. What the tiles' apps print goes to the
+journal at info and is not exported; their errors reach the share through
+their own `errors-<app>.jsonl` (ibp-printing), which is in the log
+directory above.
+
 Run it now: `sudo systemctl start ibp-kiosk-log-upload`; result:
-`journalctl -u ibp-kiosk-log-upload -n 20`.
+`journalctl -u ibp-kiosk-log-upload -n 20`; what it exported:
+`sudo ls -l /var/lib/ibp-kiosk-log-upload/journal/`.
 
 ## Package printer (DYMO) and ibp-print-server
 
@@ -440,8 +528,8 @@ sudo -u ibp-kiosk-print -g lp -H /var/lib/ibp-kiosk-print/.local/bin/ibp-print-s
 | Label journal, watcher state | `/home/kiosk/.local/state/ibp-printing/` |
 | Labels waiting to print | `/home/kiosk/Downloads/to-print/` (`printed/`, `check-printer/` next to it) |
 | Watcher journal | `sudo journalctl _SYSTEMD_USER_UNIT=ibp-kiosk-label-watcher.service` |
-| Print server | `journalctl -u ibp-kiosk-print-server`; `/var/lib/ibp-kiosk-print/.local/state/ibp-printing/logs/printer-print-server.log` |
-| Log upload | `journalctl -u ibp-kiosk-log-upload` |
+| Print server | `journalctl -u ibp-kiosk-print-server`; `/var/lib/ibp-kiosk-print/.local/state/ibp-printing/logs/printer-print-server.log` (copied to the share's `<hostname>/print-server/`) |
+| Log upload | `journalctl -u ibp-kiosk-log-upload`; journal export and its cursor in `/var/lib/ibp-kiosk-log-upload/` (root 0700) |
 
 ## Tested and not verified
 
@@ -485,6 +573,25 @@ is in `CLAUDE.md`, "State"):
   secrets, then reruns with the old stick's secrets keep the copy; an old
   `shippy-gui.ini` alone; no config at all.
 - `ibp-kiosk-log-upload`'s config parsing and checks, up to the mount.
+- `ibp-kiosk-log-upload`'s journal export (2026-11-28, systemd 255, dash,
+  against the build machine's real journal, with a stand-in `mount` and a
+  local folder as the share, not as root): the first run takes the newest
+  500, later runs only what is new (info entries and other identifiers
+  left out); with `-n 2`, five new entries over three runs, none twice or
+  missed; the day cap; the share unreachable (the files wait, the next run
+  copies them); a garbage cursor (deleted, warning at priority 4 under
+  `systemd-cat`, logs still copied); journalctl failing (logs still
+  copied); no label-printer log directory (journal still copied). The
+  failed-units list with a stand-in `systemctl` and `setpriv`: nothing
+  failed (an empty file), system and user units (one of them with `\x2d`
+  and quotes, valid JSON), the same list at the next run (rewritten with
+  the new time, and copied to the share), a user listing that fails (the
+  file unchanged, a warning), and cleared (emptied, also on the share).
+  Crash safety (2026-11-28): a failed rename of the day's file (the file
+  and cursor unchanged, the entries exported once at the next run); a lost
+  cursor save after the rename (the entries twice, whole lines); 40 runs
+  killed with SIGKILL at random moments while 1,600 entries came in, then
+  drained (every line valid JSON, none missing).
 - `systemd-analyze verify` on the units (no errors besides the scripts not
   being installed on the build machine).
 
@@ -508,6 +615,12 @@ Not verified (needs the VM or the hardware):
   (expected to work; see above).
 - Log upload against the real share (mount.cifs, rsync onto SMB, the
   `<hostname>` folder).
+- The journal export on a station (not VM-tested yet): as root under the
+  unit (`StateDirectory=`, `JOURNAL_STREAM`), on Debian 13's systemd 257
+  (the `-n` with `--cursor-file` paging was checked on 255 only: two runs
+  with nothing new must export nothing), `setpriv` reading the `kiosk` user
+  manager's failed units, and the launcher's `<N>` prefixes reaching the
+  journal through labwc.
 - The print server under the service user, `IPAddressDeny` and
   `SupplementaryGroups=lp` (the same server prints directly on the intake
   station since 2026-11-26).

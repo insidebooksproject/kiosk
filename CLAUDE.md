@@ -47,6 +47,22 @@ this one grew from.
 - Launcher code: `launcher/ibp_kiosk/` is copied to
   `/usr/local/lib/ibp-kiosk/ibp_kiosk/` and run with the system `python3` and
   Debian's PySide6 packages (no venv, no network needed to start it).
+- `/var/lib/ibp-kiosk-log-upload/` (root 0700, the upload's
+  `StateDirectory=`): the journal export's `cursor` and `journal/`, the
+  files waiting to be copied (kept 30 days); its temporary files
+  (`journal.tmp`, `failed-units.tmp`) sit beside them, never in
+  `journal/`.
+- The journal export's files on the share (the digest on ibp-server reads
+  them, `docs/apps.md`, "Journal export"): `<hostname>/journal/` holds
+  `journal-<date>.jsonl` (entries appended, whole lines only, a rare
+  duplicate after a crash, same `__CURSOR`) and
+  `failed-units-<date>.jsonl` (rewritten at every run with the units failed
+  now; empty when none is), one of each per UTC day.
+- Log priorities: a line the launcher, `ibp-kiosk-app` or
+  `ibp-kiosk-update` logs as a warning or error goes to the journal at that
+  priority (a `<N>` prefix, or `logger -p`), since the log upload exports
+  only warning and above. Output at info (what the tiles print) stays on
+  the station.
 - Users: `ibp` (admin, sudo, SSH keys only, created by the installer) and
   `kiosk` (no password, autologin on tty1, runs the session).
 - Everything this project installs is named `ibp-kiosk-*`, except
@@ -69,7 +85,7 @@ this one grew from.
 | `ibp-kiosk-app wifi` | `nmtui` in the same kind of terminal (admin screen) |
 | `ibp-kiosk-app print-diag` | `ibp-print-diag` in the same kind of terminal, open until a key is pressed (admin screen) |
 | `ibp-kiosk-tool TOOL COMMAND` | Installs or upgrades shippy, shippy-gui or ibp-printing from its `deploy` branch as a uv tool, then runs COMMAND (`docs/apps.md`) |
-| `ibp-kiosk-log-upload` | Copies the label-printer logs to the station's Samba share; run by `ibp-kiosk-log-upload.timer` |
+| `ibp-kiosk-log-upload` | Copies the label-printer logs (and the print server's, to `<hostname>/print-server/`) to the station's Samba share, and first exports the journal's IBP entries at warning and above and the failed units to `<share>/<hostname>/journal/` (`docs/apps.md`, "Journal export"); run by `ibp-kiosk-log-upload.timer` |
 | `ibp-kiosk-update` | Run as root by `ibp-kiosk-update.service` at boot: when the `deploy` branch of this repo has moved, clones it and runs its `setup.sh`; state in `/var/lib/ibp-kiosk/update` (`commit`, `src`, `status`) |
 | `ibp-kiosk-update stop` | The unit's `ExecStop=`: ends a run that is still checking; at a shutdown during `setup.sh`, shows "Finishing an update" on tty8 while the shutdown waits (up to 2 minutes) |
 | `ibp-kiosk-status network\|server\|printer-shipping\|printer-package\|printers\|update\|battery` | One status check (`printers` is both printer checks as one, the one the strip shows): exit 0 = fine, non-zero = problem; first line of stdout is a short text for the volunteer (`battery` prints nothing on a machine with no battery) |
@@ -268,6 +284,18 @@ URL at 0.7.1 (a profile already on 0.7.1 from the old URL keeps it; later
 versions arrive through its `update_url`). Since shippy's merge (2026-11-28)
 a fresh install from `1fafee0` couldn't install the separate shippy-gui
 tool ("Executables already exist"); `fbc9b9b` fixes that.
+
+The journal export in `ibp-kiosk-log-upload` (2026-11-28, the error
+reporting in the IBP workspace's `docs/error-reporting.md`) is **not
+VM-tested yet**: it ran only on the build machine (systemd 255, not as
+root, a stand-in `mount` and `systemctl`; `docs/apps.md`, "Tested"). Before
+`deploy` moves past it, check in the VM as root under the unit: a first
+run and a second with nothing new (exports nothing: the `-n` paging with
+`--cursor-file` is checked on 255 only, Debian 13 has 257), the files on a
+share (or a local Samba), the share unreachable then back, the `kiosk`
+user's failed units through `setpriv`, the launcher's and `ibp-kiosk-app`'s
+errors at priority 3, and the label-printer logs still copied when the
+export fails.
 
 Known rough edges:
 - A bad or missing Google Maps key makes shippy-gui exit with a Python

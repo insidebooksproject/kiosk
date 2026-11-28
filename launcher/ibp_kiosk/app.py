@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import logging
+import os
 import signal
 import socket
 import sys
@@ -47,13 +48,51 @@ class SignalWatcher(QObject):
             self.received.emit(signum)
 
 
+# syslog priorities by logging level, for the journal's "<N>" line prefix.
+_PRIORITIES = ((logging.CRITICAL, 2), (logging.ERROR, 3), (logging.WARNING, 4),
+               (logging.INFO, 6))
+LOG_FORMAT = "ibp-kiosk-launcher: %(levelname)s %(message)s"
+
+
+def stderr_is_journal() -> bool:
+    """Whether stderr is a journal stream, as under ``systemd-cat`` (the session)."""
+    stream = os.environ.get("JOURNAL_STREAM", "")
+    if not stream:
+        return False
+    try:
+        st = os.fstat(sys.stderr.fileno())
+    except (OSError, ValueError, AttributeError):
+        return False
+    return stream == f"{st.st_dev}:{st.st_ino}"
+
+
+class JournalFormatter(logging.Formatter):
+    """Starts each line of a record with its syslog priority (``<3>`` for ERROR).
+
+    journald reads the prefix and logs the line at that priority instead of
+    info, so the station's log upload, which exports warning and above,
+    sees the launcher's warnings and errors. Every line of a traceback gets
+    it, so the whole traceback is exported.
+    """
+
+    def format(self, record: logging.LogRecord) -> str:
+        priority = next((p for level, p in _PRIORITIES if record.levelno >= level), 7)
+        return "\n".join(f"<{priority}>{line}" for line in super().format(record).split("\n"))
+
+
+def configure_logging() -> None:
+    handler = logging.StreamHandler(sys.stderr)
+    formatter = JournalFormatter if stderr_is_journal() else logging.Formatter
+    handler.setFormatter(formatter(LOG_FORMAT))
+    logging.basicConfig(level=logging.INFO, handlers=[handler])
+
+
 def _log_unexpected(exc_type, exc, tb) -> None:  # type: ignore[no-untyped-def]
     log.error("unexpected error", exc_info=(exc_type, exc, tb))
 
 
 def run(config_path: Path, windowed: bool = False) -> int:
-    logging.basicConfig(level=logging.INFO, stream=sys.stderr,
-                        format="ibp-kiosk-launcher: %(levelname)s %(message)s")
+    configure_logging()
     # Never let a bug in a slot or a worker thread end the session.
     sys.excepthook = _log_unexpected
     threading.excepthook = lambda args: _log_unexpected(args.exc_type, args.exc_value,
