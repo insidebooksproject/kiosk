@@ -328,6 +328,13 @@ CUPS, the label watcher and the log-upload timer active, and the timer's
 run 2 minutes after boot exported a new entry and a new failed unit. A
 reboot while the updater was still checking took 2 s.
 
+Seen in that run: while `setup.sh` copies `rootfs/` (before its `chmod`
+loop), `/usr/local/bin` scripts are briefly not executable, so a status
+check that runs then fails with "Permission denied" (once per chip, in one
+of two updates). That has always been so; since the journal export the
+launcher logs it at priority 3, so the digest will see these errors at an
+update.
+
 The review fixes (the day budget counted in whole entries, the cursor
 moved only past entries written, each copy tried on its own; the launcher
 writing each record to journald's socket as one entry) were tested in the
@@ -355,13 +362,6 @@ reboot: the launcher with every tile, the system `running` with no failed
 units, the print server, the label watcher and the log-upload timer
 active, and the timer's run copied all three. `setup.sh` and `setup.d`
 didn't change, so no reboot during a `setup.sh` run was tried.
-
-Seen in that run: while `setup.sh` copies `rootfs/` (before its `chmod`
-loop), `/usr/local/bin` scripts are briefly not executable, so a status
-check that runs then fails with "Permission denied" (once per chip, in one
-of two updates). That has always been so; since the journal export the
-launcher logs it at priority 3, so the digest will see these errors at an
-update.
 
 Known rough edges:
 - A bad or missing Google Maps key makes shippy-gui exit with a Python
