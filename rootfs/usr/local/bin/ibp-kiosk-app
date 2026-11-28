@@ -174,10 +174,11 @@ pause() {
 }
 
 # An app in the terminal stopped with an error. Its message is on the
-# screen, so keep it there until a key is pressed, and log the status (the
-# launcher only sees the exit 0 below).
+# screen, so keep it there until a key is pressed, and log the status as an
+# error (the launcher only sees the exit 0 below; the log upload exports
+# the journal's errors).
 stopped() {
-    logger -t ibp-kiosk-app "$1 stopped with exit status $2" 2>/dev/null
+    logger -t ibp-kiosk-app -p user.err "$1 stopped with exit status $2" 2>/dev/null
     pause "$1 stopped (exit status $2). Read the message above, then press any key to close."
 }
 
