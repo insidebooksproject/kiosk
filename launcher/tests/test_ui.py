@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import logging
 from collections.abc import Callable, Iterator
 from pathlib import Path
 
@@ -105,6 +106,16 @@ def test_home_closes_failure_page(window: MainWindow, wait_until: Callable[..., 
     wait_until(lambda: window.page is window.failure_page)
     window.go_home()
     assert window.page is window.tiles_page
+
+
+def test_failure_screen_is_logged(window: MainWindow, wait_until: Callable[..., None],
+                                  caplog: pytest.LogCaptureFixture) -> None:
+    with caplog.at_level(logging.ERROR, logger="ibp_kiosk"):
+        window.start_tile(TILES[1])
+        wait_until(lambda: window.page is window.failure_page)
+    errors = [r.getMessage() for r in caplog.records if r.levelno == logging.ERROR]
+    assert len(errors) == 1
+    assert errors[0].startswith("bad: showing the failure screen (exit status 4 after ")
 
 
 def test_admin_screen(window: MainWindow, wait_until: Callable[..., None]) -> None:

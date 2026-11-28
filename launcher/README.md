@@ -48,7 +48,8 @@ Options: `--config PATH` (or `IBP_KIOSK_CONFIG`; default
   stdout and stderr merged into one pipe that is always drained. Each line is
   copied to the launcher's stderr as `[tile-id] line` (so it reaches the
   journal) and the last 15 are kept. If the app exits non-zero, or within 3
-  seconds, the failure screen shows them, unless the launcher stopped it.
+  seconds, the failure screen shows them, unless the launcher stopped it,
+  and the launcher logs an ERROR naming the tile and its exit status.
   When the app exits, the rest of its process group gets SIGTERM. While it
   runs, the launcher's own page (behind the app) says so and has a Close
   button.
