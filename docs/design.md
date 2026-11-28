@@ -119,7 +119,8 @@ last lines of the app's output instead of silently returning to the tiles.
   0.12.9, it refuses anything from a git branch or tag, even when cached
   (`docs/apps.md`). shippy runs in a terminal (foot) with a large font;
   shippy-gui runs from a working directory that holds its `config.ini` (it
-  reads the file from the current directory).
+  reads the file from the current directory), the same file shippy gets
+  with `--config`.
 
 ### Printing
 
@@ -140,10 +141,11 @@ last lines of the app's output instead of silently returning to the tiles.
 
 ### Configuration and secrets
 
-`config.ini` for shippy and shippy-gui holds the IBP, EasyPost and Google Maps
-API keys. `build.sh` copies them, and the Wi-Fi profiles, onto the installer
-stick at build time and `setup.sh` installs them readable by the `kiosk`
-user only. They are never committed, and the stick is wiped after use.
+One `config.ini`, shared by shippy and shippy-gui, holds the IBP URL and the
+EasyPost and Google Maps API keys. `build.sh` copies it, and the Wi-Fi
+profiles, onto the installer stick at build time and `setup.sh` installs it
+readable and writable by the `kiosk` user only. Neither is ever committed,
+and the stick is wiped after use.
 
 ### Logs
 

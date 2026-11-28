@@ -27,7 +27,7 @@ the base system and the apps is in `CLAUDE.md`; the background is in
 | `rootfs/etc/systemd/system/ibp-kiosk-log-upload.{service,timer}` | Log upload every 15 minutes |
 | `rootfs/etc/systemd/system/ibp-kiosk-print-server{,-update}.service` | ibp-print-server and its update from GitHub |
 | `setup.d/50-apps.sh` | Low-memory prefs (under 3 GiB of RAM); git and uv |
-| `setup.d/60-shipping.sh` | shippy and shippy-gui configs, the PM-2411-BT, the label watcher, log upload |
+| `setup.d/60-shipping.sh` | The shipping config, the PM-2411-BT, the label watcher, log upload |
 | `setup.d/70-package-printer.sh` | The DYMO and ibp-print-server |
 | `packages/apps.txt` | Debian packages every station gets |
 
@@ -38,8 +38,8 @@ the base system and the apps is in `CLAUDE.md`; the background is in
 | `portal` | `firefox-esr --no-remote --profile ~/.local/share/ibp-kiosk/firefox/portal --name ibp-kiosk-portal https://bookportal.tdcj.texas.gov/BookPortal/protected/dashboard.action` |
 | `requests` | the same with profile `requests`, app_id `ibp-kiosk-requests`, on `http://192.168.1.156/` |
 | `packages` | the same as `requests` (same profile and app_id), on `http://192.168.1.156/packages` |
-| `ship-individual`, `ship-bulk` | foot, maximized, with a title bar, running `shippy --config /etc/ibp-kiosk/shippy.ini individual` / `bulk` (below) |
-| `ship-manual` | `shippy-gui -qwindowtitle "Ship Manual"` (Qt's option; the title bar shows it), from `/home/kiosk/.config/shippy-gui` (it reads `config.ini` from its working directory) |
+| `ship-individual`, `ship-bulk` | foot, maximized, with a title bar, running `shippy --config /home/kiosk/.config/shippy/config.ini individual` / `bulk` (below) |
+| `ship-manual` | `shippy-gui -qwindowtitle "Ship Manual"` (Qt's option; the title bar shows it), from `/home/kiosk/.config/shippy` (it reads `config.ini` from its working directory) |
 | `wifi` | the same terminal running `nmtui` |
 | `print-diag` | the same terminal running `ibp-print-diag`, then "press any key" |
 
@@ -47,10 +47,10 @@ the base system and the apps is in `CLAUDE.md`; the background is in
 SIGTERM to the process group reaches the app itself) and exits with the
 app's status. When something is missing it prints one line on stderr and
 exits 1 (2 for a bad argument), e.g. "Shipping is not set up on this machine:
-/etc/ibp-kiosk/shippy.ini is missing or not readable. Ask an IBP admin."
-It checks, before starting anything: the shippy config (ship tiles),
-shippy-gui's `config.ini` (Ship Manual), `firefox-esr`, `foot`, `nmtui` and
-`/usr/local/bin/uv`.
+/home/kiosk/.config/shippy/config.ini is missing or not readable. Ask an IBP
+admin." (Ship Manual's says "Ship Manual is not set up on this machine: ...").
+It checks, before starting anything: the shipping config (the three ship
+tiles), `firefox-esr`, `foot`, `nmtui` and `/usr/local/bin/uv`.
 
 The start pages can be changed without editing the script: an optional
 `/etc/ibp-kiosk/apps.conf` (shell syntax, not installed by default) may set
@@ -194,6 +194,48 @@ the next launch reinstalls it, e.g.
 Disk: uv's cache (`/home/kiosk/.cache/uv`) keeps old builds. Trim it now and
 then with `sudo -u kiosk -H uv cache prune`.
 
+### The shipping config
+
+Ship Individual, Ship Bulk and Ship Manual share one file (since
+2026-11-28, when shippy-gui became part of the `shippy` package; the
+Windows laptops share `C:\Users\insid\config.ini` the same way):
+`/home/kiosk/.config/shippy/config.ini`, kiosk:kiosk 0600 in a 0700
+directory. shippy gets it with `--config`; shippy-gui runs in that
+directory, reads `config.ini` there, writes it from its Settings dialog and
+keeps its own log, `shippy.log`, next to it, so the directory belongs to
+`kiosk`. `ibp-kiosk-app` (`$HOME/.config/shippy`) and `60-shipping.sh`
+each name the path.
+
+What it must hold (the template is `config.example.ini` in the shippy
+repo): `[ibp]` `url`, `[easypost]` `apikey` and `[googlemaps]` `apikey`.
+shippy needs the three sections; shippy-gui also refuses a blank EasyPost or
+Google Maps key (it shows "Config file is invalid or incomplete" and opens
+Settings). `[ui]` (font size, default weight, log file) is shippy-gui's
+only, optional, and ignored by shippy; `[parcel]` is optional and read by
+both. So a file written for shippy alone works for all three tiles as long
+as those two keys aren't blank. Saving from Settings rewrites the file: it
+keeps the other sections (`[parcel]`), writes `[ui]` and drops comments.
+
+The secret is `shippy.ini` (`build.sh`'s `KIOSK_SHIPPY_CONFIG`). Volunteers
+change the file from Settings, so `60-shipping.sh` replaces it only with a
+secret it doesn't already hold: `/var/lib/ibp-kiosk/shippy.ini.sha256`
+lists the checksums of the secrets it came from, one per line, and the
+replaced file is kept as `config.ini.bak-<date>`. To install the same
+secret again anyway, delete the checksum file first. An old secrets directory's
+`shippy-gui.ini` is used only when there is no `shippy.ini` (with a
+warning), and ignored with a warning when there is one.
+
+**Stations set up before 2026-11-28** had two: shippy's
+`/etc/ibp-kiosk/shippy.ini` (root:kiosk 0640) and shippy-gui's
+`/home/kiosk/.config/shippy-gui/config.ini` (with its secret's checksum in
+`/var/lib/ibp-kiosk/shippy-gui.ini.sha256`). When the new file is missing,
+`60-shipping.sh` (at the boot update, with no secrets) creates it from
+shippy-gui's, which has the volunteer's saved settings and keys both apps
+need, else from shippy's. Its stamp gets the checksums of both old secrets,
+so a rerun with the old stick keeps the copy. The old files are left in
+place, unread: a rollback of `deploy` would still use them, and either may
+hold a key the other lacks. Delete them by hand once all three tiles work.
+
 ### Ship Individual, Ship Bulk (foot)
 
 `foot --log-level=error --config=/etc/ibp-kiosk/foot.ini
@@ -223,11 +265,8 @@ terminal window, no URL launcher).
 
 ### Ship Manual (shippy-gui)
 
-Runs from `/home/kiosk/.config/shippy-gui` with `QT_QPA_PLATFORM=wayland;xcb`.
-Its Settings dialog writes `config.ini` there; `60-shipping.sh` never
-overwrites that unless a *different* `shippy-gui.ini` secret is supplied
-(the last one's checksum is in `/var/lib/ibp-kiosk/shippy-gui.ini.sha256`),
-and then keeps the old file as `config.ini.bak-<date>`.
+Runs from `/home/kiosk/.config/shippy` with `QT_QPA_PLATFORM=wayland;xcb`,
+on the shared config (above), which its Settings dialog writes.
 
 **No CUPS.** ibp-printing dropped CUPS on 2026-11-26: on Linux it prints
 only to the printers it drives directly over USB (usblp), the PM-2411-BT
@@ -392,8 +431,7 @@ sudo -u ibp-kiosk-print -g lp -H /var/lib/ibp-kiosk-print/.local/bin/ibp-print-s
 
 | What | Where |
 |---|---|
-| shippy config | `/etc/ibp-kiosk/shippy.ini` (root:kiosk 0640) |
-| shippy-gui config | `/home/kiosk/.config/shippy-gui/config.ini` (kiosk 0600) |
+| Shipping config (all three ship tiles) | `/home/kiosk/.config/shippy/config.ini` (kiosk 0600); Ship Manual's log `shippy.log` next to it. Stations from before 2026-11-28 also keep the unread `/etc/ibp-kiosk/shippy.ini` and `/home/kiosk/.config/shippy-gui/` |
 | Log upload config | `/etc/ibp-kiosk/log-upload.conf` (root 0600) |
 | Optional URL overrides | `/etc/ibp-kiosk/apps.conf` |
 | Firefox profiles | `/home/kiosk/.local/share/ibp-kiosk/firefox/{portal,requests}` (IBP Packages uses `requests`) |
@@ -439,9 +477,13 @@ is in `CLAUDE.md`, "State"):
   changed spec; installs of shippy, shippy-gui and ibp-printing[watcher];
   `ibp-label-watcher --help`, `ibp-print-diag --help`.
 - `setup.d/50-apps.sh`'s uv install (download, checksum, skip when current,
-  bad checksum warns without failing) and `60-shipping.sh`'s shippy-gui
-  config logic (keep on rerun, replace with backup on a new secret), against
-  scratch paths.
+  bad checksum warns without failing) and `60-shipping.sh`'s config logic,
+  against scratch paths (2026-11-28, the shared config): a fresh install;
+  a rerun without secrets and with the same secret keeps saved settings; a
+  new secret replaces the file and keeps a backup; migration from the two
+  old configs (from shippy-gui's, or shippy's alone) at a rerun without
+  secrets, then reruns with the old stick's secrets keep the copy; an old
+  `shippy-gui.ini` alone; no config at all.
 - `ibp-kiosk-log-upload`'s config parsing and checks, up to the mount.
 - `systemd-analyze verify` on the units (no errors besides the scripts not
   being installed on the build machine).

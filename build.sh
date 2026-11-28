@@ -24,8 +24,10 @@
 #                                    itself from at boot (default deploy;
 #                                    empty turns updates off)
 # The apps' settings (each asked for; an empty answer leaves it out):
-#   KIOSK_SHIPPY_CONFIG              shippy's config.ini
-#   KIOSK_SHIPPY_GUI_CONFIG          shippy-gui's config.ini
+#   KIOSK_SHIPPY_CONFIG              the config.ini of shippy and shippy-gui
+#                                    (all three shipping tiles). The old
+#                                    KIOSK_SHIPPY_GUI_CONFIG is used only
+#                                    when this is unset or empty
 #   KIOSK_LOG_SHARE                  Samba share for the logs, //host/share
 #   KIOSK_LOG_USER, KIOSK_LOG_PASSWORD
 #
@@ -119,10 +121,18 @@ KIOSK_TAILSCALE_AUTHKEY=${KIOSK_TAILSCALE_AUTHKEY:-}
 no_newlines "$KIOSK_TAILSCALE_AUTHKEY"
 
 if [ "$test_mode" != 1 ]; then
-    for var in KIOSK_SHIPPY_CONFIG KIOSK_SHIPPY_GUI_CONFIG; do
-        ask_optional "$var" "$var: path to the config.ini (empty to leave it out)"
-        [ -z "${!var}" ] || [ -s "${!var}" ] || die "no file at ${!var}"
-    done
+    # Since 2026-11-28 shippy and shippy-gui share one config.ini; the
+    # setting for shippy-gui's own still works, with a warning.
+    if [ -n "${KIOSK_SHIPPY_GUI_CONFIG:-}" ]; then
+        if [ -n "${KIOSK_SHIPPY_CONFIG:-}" ]; then
+            echo "warning: ignoring KIOSK_SHIPPY_GUI_CONFIG: KIOSK_SHIPPY_CONFIG is the one config of the shipping apps now" >&2
+        else
+            echo "warning: KIOSK_SHIPPY_GUI_CONFIG is now KIOSK_SHIPPY_CONFIG; using it for all three shipping tiles" >&2
+            KIOSK_SHIPPY_CONFIG=$KIOSK_SHIPPY_GUI_CONFIG
+        fi
+    fi
+    ask_optional KIOSK_SHIPPY_CONFIG "KIOSK_SHIPPY_CONFIG: path to the shipping apps' config.ini (empty to leave it out)"
+    [ -z "$KIOSK_SHIPPY_CONFIG" ] || [ -s "$KIOSK_SHIPPY_CONFIG" ] || die "no file at $KIOSK_SHIPPY_CONFIG"
     ask_optional KIOSK_LOG_SHARE "Samba share for the logs, //host/share (empty for none)"
     if [ -n "$KIOSK_LOG_SHARE" ]; then
         [[ $KIOSK_LOG_SHARE == //?*/?* ]] || die "the log share looks like //host/share"
@@ -221,8 +231,7 @@ elif [ "$test_mode" = 1 ]; then
 fi
 
 if [ "$test_mode" = 1 ]; then
-    for name in shippy shippy-gui; do
-        cat >"$secrets/$name.ini" <<'EOF'
+    cat >"$secrets/shippy.ini" <<'EOF'
 # Placeholder written by build.sh KIOSK_TEST=1: no real keys.
 [ibp]
 url = http://ibp-server.invalid
@@ -234,12 +243,10 @@ apikey = test
 [googlemaps]
 apikey = AIzaTESTTESTTESTTESTTESTTESTTESTTESTTES
 EOF
-    done
     printf 'SHARE=//ibp-server.invalid/ibp-logs-test\nUSERNAME=test\nPASSWORD=test\n' \
         >"$secrets/log-upload.conf"
 else
     [ -z "${KIOSK_SHIPPY_CONFIG:-}" ] || cp "$KIOSK_SHIPPY_CONFIG" "$secrets/shippy.ini"
-    [ -z "${KIOSK_SHIPPY_GUI_CONFIG:-}" ] || cp "$KIOSK_SHIPPY_GUI_CONFIG" "$secrets/shippy-gui.ini"
     if [ -n "${KIOSK_LOG_SHARE:-}" ]; then
         printf 'SHARE=%s\nUSERNAME=%s\nPASSWORD=%s\n' \
             "$KIOSK_LOG_SHARE" "$KIOSK_LOG_USER" "$KIOSK_LOG_PASSWORD" \

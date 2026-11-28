@@ -33,13 +33,17 @@ this one grew from.
 
 ### Names and paths on the installed system
 
-- Config directory `/etc/ibp-kiosk/`: `shippy.ini` (root:kiosk 0640),
-  `log-upload.conf` (root 0600), `tailscale-authkey` (root 0600, deleted after use), `update.conf`
+- Config directory `/etc/ibp-kiosk/`: `log-upload.conf` (root 0600),
+  `tailscale-authkey` (root 0600, deleted after use), `update.conf`
   (optional, 0644: `UPDATE_BRANCH`, `UPDATE_URL`), `apps.conf` (optional,
   never installed: start-page and server URLs, `docs/apps.md`), and from
   `rootfs/` `station.toml`, `foot.ini`, `labwc/` and `waybar/`.
-- shippy-gui reads and writes `config.ini` in its working directory:
-  `/home/kiosk/.config/shippy-gui/config.ini` (kiosk 0600).
+- The shipping apps' one config (since 2026-11-28):
+  `/home/kiosk/.config/shippy/config.ini` (kiosk:kiosk 0600, directory
+  0700). shippy gets it with `--config`; shippy-gui reads and writes
+  `config.ini` in its working directory, which is that directory. Stations
+  set up before then still have the unread old `/etc/ibp-kiosk/shippy.ini`
+  and `/home/kiosk/.config/shippy-gui/` (`docs/apps.md`).
 - Launcher code: `launcher/ibp_kiosk/` is copied to
   `/usr/local/lib/ibp-kiosk/ibp_kiosk/` and run with the system `python3` and
   Debian's PySide6 packages (no venv, no network needed to start it).
@@ -144,7 +148,9 @@ deletes the `/etc/ibp-kiosk/profile.conf` that stations installed before
 
 `authorized_keys`, `wifi/*.nmconnection` (`ibp-wifi`, `ibp-site-wifi`),
 `tailscale-authkey`, `update.conf` (`UPDATE_BRANCH=`; not a secret, it rides
-along), `shippy.ini`, `shippy-gui.ini`, `log-upload.conf`
+along), `shippy.ini` (the shipping apps' config; an old secrets
+directory's `shippy-gui.ini` is used only when there is no `shippy.ini`,
+with a warning), `log-upload.conf`
 (`SHARE=//host/share`, `USERNAME=`, `PASSWORD=`), `force-broadcom-sta`
 (empty; test builds only). A rerun without a secrets directory leaves the
 installed ones alone. `build.sh`'s settings are in `README.md`, step 1.
@@ -288,10 +294,10 @@ After `deploy` moved to `201d796` the same day, two restarts gave it every
 tile: the first ran the update (2 minutes, including shippy-gui), the
 second started the launcher with the new tiles. The print server, CUPS and
 the label watcher run; 435 MB used at the tiles. Updated again to `1fafee0`
-(one "Printer" status chip) the same day. It has no shippy,
-shippy-gui or log-share configs, so the three shipping tiles fail until
-they are added (rerun `setup.sh` with a secrets directory). Its stick still
-holds the Wi-Fi passwords, admin password hash and tailnet station key.
+(one "Printer" status chip) the same day. It has no shipping or log-share
+config, so the three shipping tiles fail until they are added (rerun
+`setup.sh` with a secrets directory). Its stick still holds the Wi-Fi
+passwords, admin password hash and tailnet station key.
 
 ### MacBook `ibp-bilbo` (model A1278)
 
@@ -305,7 +311,9 @@ will work there once the station's configs point at its tailnet name (the
 workspace's `BACKLOG.md`).
 shippy-gui's config on the machine has the real Google Maps key (Bitwarden
 `Google Maps API (IBP)`, set by hand 2026-11-25); its IBP and EasyPost keys
-and all of shippy's are still placeholders.
+and all of shippy's are still placeholders. The first update with the
+shared config copies shippy-gui's (with that key) to
+`/home/kiosk/.config/shippy/config.ini` for all three tiles.
 
 Closing the lid shuts it down (checked 2026-11-26). Not yet checked on it:
 the label printer and the Broadcom driver step's log. The stick still holds
