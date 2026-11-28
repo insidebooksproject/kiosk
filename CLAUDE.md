@@ -328,6 +328,34 @@ CUPS, the label watcher and the log-upload timer active, and the timer's
 run 2 minutes after boot exported a new entry and a new failed unit. A
 reboot while the updater was still checking took 2 s.
 
+The review fixes (the day budget counted in whole entries, the cursor
+moved only past entries written, each copy tried on its own; the launcher
+writing each record to journald's socket as one entry) were tested in the
+VM 2026-11-28 at `53466b5` (4 GB, `KIOSK_TEST=1`, Debian 13.8, systemd
+257, dummy credentials, the share a Samba share in the VM itself): a fresh
+install booted into the launcher with all six tiles. A status check
+whose command holds a NUL byte (Popen's `ValueError`, logged with
+`log.exception`) gave one `journalctl -t ibp-kiosk` entry at priority 3
+whose `MESSAGE` held the whole 31-line traceback, with `CODE_FILE`,
+`CODE_LINE` and `CODE_FUNC`, and the export wrote it as one JSONL line.
+Under its unit (from the timer, then `systemctl start`), a second run left
+the day file and the cursor unchanged. With
+`IBP_KIOSK_JOURNAL_MAX_DAY_BYTES` set in a drop-in to the day file's size
+plus two of five new entries and 100 bytes, the run wrote those two
+(3565 of 3665 bytes) and saved the second one's cursor, and the other
+three stayed after it in the journal; a run with 100 bytes of room, and
+one with none ("over ... bytes today"), changed neither file; with the
+drop-in removed the next run wrote the three and the runs' warnings once,
+no repeated `__CURSOR`. With the share's `print-server` folder read-only,
+the label-printer logs (one deleted on the share) and a new journal entry
+were still copied and the unit failed (exit 1). With the VM's Samba
+stopped the unit failed at the mount and the new entry waited in the
+spool; with it back, both files were copied byte-identical. After a
+reboot: the launcher with every tile, the system `running` with no failed
+units, the print server, the label watcher and the log-upload timer
+active, and the timer's run copied all three. `setup.sh` and `setup.d`
+didn't change, so no reboot during a `setup.sh` run was tried.
+
 Seen in that run: while `setup.sh` copies `rootfs/` (before its `chmod`
 loop), `/usr/local/bin` scripts are briefly not executable, so a status
 check that runs then fails with "Permission denied" (once per chip, in one
