@@ -106,9 +106,26 @@ ibp_matches() {
     done
 }
 
+# The cursor of the journal entry on the last line of FILE (journalctl's
+# JSON: inside a string every '"' is escaped, so only the real field
+# matches), or nothing.
+last_cursor() {
+    tail -n 1 "$1" | sed -n 's/.*"__CURSOR":"\([^"\\]*\)".*/\1/p'
+}
+
+# The leading whole lines of FILE that fit in ROOM bytes, newlines
+# included: never part of a line.
+lines_that_fit() {
+    LC_ALL=C awk -v room="$2" '
+        { used += length($0) + 1; if (used > room) exit; print }' "$1"
+}
+
 # Append the IBP journal entries at warning or above since the last run to
-# today's journal-<date>.jsonl, journald's JSON as is. The cursor is kept
-# only once they are written, so a failed run exports them again.
+# today's journal-<date>.jsonl, journald's JSON as is, as many whole entries
+# as fit in what is left of the day's MAX_DAY_BYTES. The cursor is kept only
+# once they are written, and only up to the last entry written, so a failed
+# run exports them again and the entries over the budget wait in the
+# journal for the next day.
 # The day's file is never appended to in place: the new entries go to a copy
 # of it, renamed over it, so a run killed part-way (a shutdown, the unit's
 # timeout) leaves it as it was, never with a cut-off line. Killed after the
@@ -116,7 +133,9 @@ ibp_matches() {
 # entries again: whole lines, with the same __CURSOR.
 export_journal() {
     day=$SPOOL/journal-$(date -u +%Y-%m-%d).jsonl
-    if [ "$(size_of "$day")" -ge "$MAX_DAY_BYTES" ]; then
+    used=$(size_of "$day") || return 1
+    room=$((MAX_DAY_BYTES - used))
+    if [ "$room" -le 0 ]; then
         warn "journal export: over $MAX_DAY_BYTES bytes today; the rest waits in the journal until tomorrow"
         return 0
     fi
@@ -132,7 +151,8 @@ EOF
     # Nothing in the journal comes from IBP yet.
     [ $# -gt 0 ] || return 0
 
-    rm -f "$RUN/cursor" "$RUN/journal.jsonl" "$RUN/journal.err"
+    rm -f "$RUN/cursor" "$RUN/journal.jsonl" "$RUN/journal.err" \
+        "$RUN/journal.fit" "$RUN/journal.skip"
     if [ -s "$STATE/cursor" ]; then
         cp "$STATE/cursor" "$RUN/cursor" || return 1
     fi
@@ -154,7 +174,38 @@ EOF
         esac
         return 1
     fi
-    if [ -s "$RUN/journal.jsonl" ]; then
+    [ -s "$RUN/journal.jsonl" ] || return 0
+    lines_that_fit "$RUN/journal.jsonl" "$room" >"$RUN/journal.fit" || return 1
+    got=$(wc -l <"$RUN/journal.jsonl") || return 1
+    fit=$(wc -l <"$RUN/journal.fit") || return 1
+    if [ "$fit" -lt "$got" ]; then
+        if [ "$fit" -gt 0 ]; then
+            # journalctl's cursor is past the entries left out: keep the
+            # one of the last entry written instead.
+            last=$RUN/journal.fit
+            warn "journal export: $MAX_DAY_BYTES bytes today; the rest waits in the journal until tomorrow"
+        elif [ "$used" -eq 0 ]; then
+            # One entry over a whole day's budget would hold every later
+            # one back for good, so it is left out.
+            head -n 1 "$RUN/journal.jsonl" >"$RUN/journal.skip" || return 1
+            last=$RUN/journal.skip
+            warn "journal export: left out an entry over $MAX_DAY_BYTES bytes"
+        else
+            last=
+            warn "journal export: $MAX_DAY_BYTES bytes today; the rest waits in the journal until tomorrow"
+        fi
+        if [ -n "$last" ]; then
+            cursor=$(last_cursor "$last")
+            if [ -z "$cursor" ]; then
+                warn "journal export: no __CURSOR in journalctl's output"
+                return 1
+            fi
+            printf '%s\n' "$cursor" >"$RUN/cursor" || return 1
+        else
+            rm -f "$RUN/cursor" # Nothing written: the saved cursor stays.
+        fi
+    fi
+    if [ -s "$RUN/journal.fit" ]; then
         # In $STATE, not $SPOOL: on the same file system, and never copied
         # to the share.
         tmp=$STATE/journal.tmp
@@ -162,7 +213,7 @@ EOF
         if [ -f "$day" ]; then
             cp "$day" "$tmp" || return 1
         fi
-        cat "$RUN/journal.jsonl" >>"$tmp" || return 1
+        cat "$RUN/journal.fit" >>"$tmp" || return 1
         mv "$tmp" "$day" || return 1
     fi
     if [ -s "$RUN/cursor" ]; then
@@ -235,7 +286,8 @@ umask 077
 mkdir -p "$RUN"
 if mkdir -p "$SPOOL"; then
     export_journal || warn "journal export failed; going on with the upload"
-    rm -f "$RUN/cursor" "$RUN/journal.jsonl" "$RUN/journal.err"
+    rm -f "$RUN/cursor" "$RUN/journal.jsonl" "$RUN/journal.err" \
+        "$RUN/journal.fit" "$RUN/journal.skip"
     export_failed_units || warn "failed-units export failed; going on with the upload"
     # Spooled files are kept a month, uploaded or not.
     find "$SPOOL" -type f -name '*.jsonl' -mtime +"$KEEP_DAYS" -exec rm -f {} + ||
@@ -299,19 +351,28 @@ timeout 60 mount -t cifs "$share" "$mnt" \
 rm -f "$cred"
 
 mkdir -p "$mnt/$host"
+
+# Copy SRC/ into the share's DEST (a folder under <host>), within SECONDS.
 # -rt: files and times only (the share decides owners and modes);
-# --modify-window: SMB keeps coarser timestamps; no --delete, ever.
+# --modify-window: SMB keeps coarser timestamps; no --delete, ever. Each copy
+# is tried whatever happened to the others; the run fails if one did.
+failed=
+copy() {
+    if mkdir -p "$mnt/$2" &&
+        timeout "$3" rsync -rt --modify-window=2 --timeout=60 "$1/" "$mnt/$2/"; then
+        log "copied $4 to $share/$2"
+    else
+        log "could not copy $4 to $share/$2"
+        failed=1
+    fi
+}
 if [ -n "$have_logs" ]; then
-    timeout 480 rsync -rt --modify-window=2 --timeout=60 "$LOGS/" "$mnt/$host/"
-    log "copied $LOGS to $share/$host"
+    copy "$LOGS" "$host" 480 "$LOGS"
 fi
 if [ -n "$have_print_logs" ]; then
-    mkdir -p "$mnt/$host/print-server"
-    timeout 240 rsync -rt --modify-window=2 --timeout=60 "$PRINT_LOGS/" "$mnt/$host/print-server/"
-    log "copied $PRINT_LOGS to $share/$host/print-server"
+    copy "$PRINT_LOGS" "$host/print-server" 240 "$PRINT_LOGS"
 fi
 if [ -n "$have_journal" ]; then
-    mkdir -p "$mnt/$host/journal"
-    timeout 120 rsync -rt --modify-window=2 --timeout=60 "$SPOOL/" "$mnt/$host/journal/"
-    log "copied the journal export to $share/$host/journal"
+    copy "$SPOOL" "$host/journal" 120 "the journal export"
 fi
+[ -z "$failed" ] || exit 1

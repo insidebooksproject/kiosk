@@ -6,6 +6,7 @@ import logging
 import os
 import signal
 import socket
+import struct
 import sys
 import threading
 from pathlib import Path
@@ -48,10 +49,22 @@ class SignalWatcher(QObject):
             self.received.emit(signum)
 
 
-# syslog priorities by logging level, for the journal's "<N>" line prefix.
+# syslog priorities by logging level, for the journal's PRIORITY (and the
+# "<N>" line prefix when the journal's socket can't be used).
 _PRIORITIES = ((logging.CRITICAL, 2), (logging.ERROR, 3), (logging.WARNING, 4),
                (logging.INFO, 6))
 LOG_FORMAT = "ibp-kiosk-launcher: %(levelname)s %(message)s"
+JOURNAL_SOCKET = "/run/systemd/journal/socket"
+# The session's identifier (ibp-kiosk-session's systemd-cat -t), which
+# `journalctl -t ibp-kiosk` and the station's log upload look for.
+JOURNAL_IDENTIFIER = "ibp-kiosk"
+# The log upload exports fields of up to 4096 bytes (bigger ones as null).
+MAX_MESSAGE_BYTES = 4000
+
+
+def priority(levelno: int) -> int:
+    """The syslog priority of a logging level (3 for ERROR)."""
+    return next((p for level, p in _PRIORITIES if levelno >= level), 7)
 
 
 def stderr_is_journal() -> bool:
@@ -66,24 +79,94 @@ def stderr_is_journal() -> bool:
     return stream == f"{st.st_dev}:{st.st_ino}"
 
 
-class JournalFormatter(logging.Formatter):
-    """Starts each line of a record with its syslog priority (``<3>`` for ERROR).
+def with_priority(text: str, levelno: int) -> str:
+    """Each line of ``text`` started with its syslog priority (``<3>`` for
+    ERROR), which journald reads from a stream; each line is then an entry of
+    its own, so this is only :class:`JournalHandler`'s fallback."""
+    prefix = f"<{priority(levelno)}>"
+    return "\n".join(prefix + line for line in text.split("\n"))
 
-    journald reads the prefix and logs the line at that priority instead of
-    info, so the station's log upload, which exports warning and above,
-    sees the launcher's warnings and errors. Every line of a traceback gets
-    it, so the whole traceback is exported.
+
+def fit_message(text: str, limit: int = MAX_MESSAGE_BYTES) -> str:
+    """``text`` cut to ``limit`` UTF-8 bytes: its first line and as many of its
+    last lines (a traceback's innermost frames and exception) as fit."""
+    if len(text.encode()) <= limit:
+        return text
+    lines = text.split("\n")
+    head = lines[0].encode()[: limit // 2].decode(errors="ignore")
+    tail: list[str] = []
+    for line in reversed(lines[1:]):
+        marker = f"[{len(lines) - 2 - len(tail)} lines left out]"
+        if len("\n".join([head, marker, line, *tail]).encode()) > limit:
+            break
+        tail.insert(0, line)
+    return "\n".join([head, f"[{len(lines) - 1 - len(tail)} lines left out]", *tail])
+
+
+def journal_datagram(fields: dict[str, str]) -> bytes:
+    """``fields`` in journald's native protocol (a value with a newline in
+    it goes as its length and bytes)."""
+    out = bytearray()
+    for key, value in fields.items():
+        data = value.encode()
+        if b"\n" in data:
+            out += key.encode() + b"\n" + struct.pack("<Q", len(data)) + data + b"\n"
+        else:
+            out += key.encode() + b"=" + data + b"\n"
+    return bytes(out)
+
+
+class JournalHandler(logging.Handler):
+    """Writes each record to the journal as one entry, traceback included.
+
+    Through journald's socket, at the record's priority, with the session's
+    identifier and the record's CODE_FILE, CODE_LINE and CODE_FUNC, so the
+    station's log upload exports a traceback as one entry and not one per
+    line. If the socket can't take it, the record goes to stderr (the
+    session's journal stream) one prefixed line at a time instead.
     """
 
-    def format(self, record: logging.LogRecord) -> str:
-        priority = next((p for level, p in _PRIORITIES if record.levelno >= level), 7)
-        return "\n".join(f"<{priority}>{line}" for line in super().format(record).split("\n"))
+    def __init__(self, path: str = JOURNAL_SOCKET) -> None:
+        super().__init__()
+        self.path = path
+        self.socket = socket.socket(socket.AF_UNIX, socket.SOCK_DGRAM)
+        self.socket.setblocking(False)  # never hold up the UI
+
+    def emit(self, record: logging.LogRecord) -> None:
+        try:
+            text = self.format(record)
+            fields = {
+                "MESSAGE": fit_message(text),
+                "PRIORITY": str(priority(record.levelno)),
+                "SYSLOG_IDENTIFIER": JOURNAL_IDENTIFIER,
+                "CODE_FILE": record.pathname,
+                "CODE_LINE": str(record.lineno),
+                "CODE_FUNC": record.funcName or "",
+            }
+            datagram = journal_datagram({k: v for k, v in fields.items() if v})
+        except Exception:  # noqa: BLE001
+            self.handleError(record)
+            return
+        try:
+            self.socket.sendto(datagram, self.path)
+        except OSError:
+            try:
+                sys.stderr.write(with_priority(text, record.levelno) + "\n")
+                sys.stderr.flush()
+            except Exception:  # noqa: BLE001
+                self.handleError(record)
+
+    def close(self) -> None:
+        self.socket.close()
+        super().close()
 
 
 def configure_logging() -> None:
-    handler = logging.StreamHandler(sys.stderr)
-    formatter = JournalFormatter if stderr_is_journal() else logging.Formatter
-    handler.setFormatter(formatter(LOG_FORMAT))
+    if stderr_is_journal():
+        handler: logging.Handler = JournalHandler()
+    else:
+        handler = logging.StreamHandler(sys.stderr)
+    handler.setFormatter(logging.Formatter(LOG_FORMAT))
     logging.basicConfig(level=logging.INFO, handlers=[handler])
 
 

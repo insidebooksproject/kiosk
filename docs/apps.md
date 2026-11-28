@@ -454,21 +454,32 @@ What it doesn't break:
 - **No network, or the share can't be reached:** the files stay in
   `/var/lib/ibp-kiosk-log-upload/journal/` and go at the next run that
   mounts the share; the unit fails as before.
+- **One copy fails** (the label-printer logs, the print server's or the
+  journal export): the others are still tried, and the unit fails.
 - **No label-printer logs yet:** the journal export is still copied (until
   now the run stopped there).
 
 Limits on what one run writes: at most 500 entries (`-n 500` after the
 cursor; the next runs take the rest, so nothing is skipped), each field at
-most 4096 bytes, and at most 4 MiB of journal entries a day: past that the
-export stops for the day and the rest waits in the journal (journald's own
-size limits apply). The spooled files are deleted after 30 days, copied or
-not. The unit's `TimeoutStartSec` went from 10 to 20 minutes for the extra
-steps (each has its own `timeout`).
+most 4096 bytes, and at most 4 MiB of journal entries a day, counted in
+whole entries: a run writes only the entries that still fit, the cursor
+moves past those only, and the rest waits in the journal for the next day
+(journald's own size limits apply). An entry bigger than a whole day's
+budget, which can't happen with fields capped at 4096 bytes, is left out
+with a warning rather than holding back every later one. The spooled files
+are deleted after 30 days, copied or not. The unit's `TimeoutStartSec` went
+from 10 to 20 minutes for the extra steps (each has its own `timeout`).
+`launcher/tests/test_log_upload.py` runs the script under dash with
+stand-ins for journalctl, systemctl, mount and rsync (the day budget, the
+run limit, the copies).
 
 What the export finds depends on the priority an entry is logged at. A
 service's or `systemd-cat`'s output is logged at info unless a line starts
-with a syslog prefix such as `<3>`: the launcher adds one to its own log
-lines when its stderr is the journal (`JOURNAL_STREAM`), `ibp-kiosk-app`
+with a syslog prefix such as `<3>`. The launcher, when its stderr is the
+journal (`JOURNAL_STREAM`), writes each of its log records as one entry
+through journald's socket instead, at the record's priority, a traceback in
+the same `MESSAGE` (cut to 4000 bytes: the first line and the last ones),
+with identifier `ibp-kiosk`; `ibp-kiosk-app`
 logs an app that stopped with an error at `err`, and so does
 `ibp-kiosk-update` a failed update. What the tiles' apps print goes to the
 journal at info and is not exported; their errors reach the share through
