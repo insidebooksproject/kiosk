@@ -66,7 +66,12 @@ Options: `--config PATH` (or `IBP_KIOSK_CONFIG`; default
   click the chip). Changes are logged.
 - **Errors.** A missing or invalid `station.toml` shows a full-screen message
   with the reason and the power buttons. Unexpected exceptions are logged to
-  stderr and never end the launcher. SIGTERM, SIGINT or SIGHUP stop the
+  stderr and never end the launcher. When stderr is the journal (the session
+  runs labwc under `systemd-cat`, which sets `JOURNAL_STREAM`), each line of
+  a log record starts with its syslog priority (`<3>` for ERROR, `<4>` for
+  WARNING), so journald records it at that priority and the station's log
+  upload, which exports warning and above, picks it up; app output copied
+  as `[tile-id] line` stays at info. SIGTERM, SIGINT or SIGHUP stop the
   running app, then the launcher.
 - The Wayland app_id is `ibp-kiosk-launcher` (for labwc window rules).
 
