@@ -78,7 +78,6 @@ fi
 
 # The apps themselves, so the first launch needn't download them.
 ibp_apps_preinstall kiosk shippy
-ibp_apps_preinstall kiosk shippy-gui
 ibp_apps_preinstall kiosk ibp-printing
 
 if [ -n "$KIOSK_LIVE" ]; then

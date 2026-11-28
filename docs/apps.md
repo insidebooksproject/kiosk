@@ -143,8 +143,7 @@ ibp-kiosk-tool [--no-upgrade | --install-only] TOOL [COMMAND [ARG...]]
 
 | TOOL | SPEC | Used by |
 |---|---|---|
-| `shippy` | `shippy @ git+https://github.com/insidebooksproject/shippy.git@deploy` | Ship Individual, Ship Bulk |
-| `shippy-gui` | `shippy-gui @ git+https://github.com/insidebooksproject/shippy-gui.git@deploy` | Ship Manual |
+| `shippy` (or `shippy-gui`, the same tool) | `shippy[gui] @ git+https://github.com/insidebooksproject/shippy.git@deploy` | Ship Individual, Ship Bulk, Ship Manual |
 | `ibp-printing` | `ibp-printing[watcher] @ git+https://github.com/insidebooksproject/printing.git@deploy` | label watcher, Printer check (`--no-upgrade`) |
 | `ibp-printing-server` | `ibp-printing @ ...@deploy` | the print server (user `ibp-kiosk-print`) |
 
@@ -155,7 +154,7 @@ start, i.e. boot). A changed SPEC in this script (recorded in
 (`flock`) keeps two installs of one tool apart. `setup.d` preinstalls every
 tool (as the user that runs it), so the first launch is quick
 and works offline; if that fails at install time, the first launch installs
-it instead (shippy-gui's PySide6 is about 700 MB, so that takes minutes with
+it instead (the gui extra's PySide6 is about 700 MB, so that takes minutes with
 no window showing).
 
 **uv's offline mode, as observed** (uv 0.12.9 on this build machine,
