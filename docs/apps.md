@@ -12,7 +12,7 @@ the base system and the apps is in `CLAUDE.md`; the background is in
 | `rootfs/usr/local/bin/ibp-kiosk-app` | Starts one tile's app (below) |
 | `rootfs/usr/local/bin/ibp-kiosk-status` | The status strip's checks |
 | `rootfs/usr/local/bin/ibp-kiosk-tool` | Installs, upgrades and runs shippy, shippy-gui and ibp-printing as uv tools |
-| `rootfs/usr/local/bin/ibp-kiosk-log-upload` | Copies the label-printer logs and the journal export to the Samba share |
+| `rootfs/usr/local/bin/ibp-kiosk-log-upload` | Copies the label-printer and print-server logs and the journal export to the Samba share |
 | `rootfs/usr/share/firefox-esr/distribution/policies.json` | Firefox policies (every browser tile) |
 | `rootfs/etc/firefox-esr/ibp-kiosk.js` | Firefox prefs (every browser tile) |
 | `rootfs/etc/gtk-3.0/settings.ini` | Firefox's window buttons: close only |
@@ -382,8 +382,12 @@ value is removed), writes a mount.cifs credentials file in the service's
 root-only runtime directory, mounts the share in the service's private mount
 namespace (`PrivateMounts=yes`, so it never outlives the service), deletes
 the credentials file, and runs `rsync -rt --modify-window=2` (no `--delete`)
-from `/home/kiosk/.local/state/ibp-printing/logs/` to `<share>/<hostname>/`.
-The password is never on a command line. The host-named folder keeps a
+from `/home/kiosk/.local/state/ibp-printing/logs/` to `<share>/<hostname>/`,
+and the print server's log directory
+(`/var/lib/ibp-kiosk-print/.local/state/ibp-printing/logs/`, since
+2026-11-28) to `<share>/<hostname>/print-server/` (its own folder: both
+directories can hold a `printer.log`). Either is skipped when it doesn't
+exist. The password is never on a command line. The host-named folder keeps a
 station that reuses an old laptop's share from overwriting that laptop's
 Windows logs (same file names). Each station still needs its own share and
 account on ibp-server (`ops/ibp-server.md`, "Samba shares").
@@ -450,7 +454,7 @@ cursor; the next runs take the rest, so nothing is skipped), each field at
 most 4096 bytes, and at most 4 MiB of journal entries a day: past that the
 export stops for the day and the rest waits in the journal (journald's own
 size limits apply). The spooled files are deleted after 30 days, copied or
-not. The unit's `TimeoutStartSec` went from 10 to 15 minutes for the extra
+not. The unit's `TimeoutStartSec` went from 10 to 20 minutes for the extra
 steps (each has its own `timeout`).
 
 What the export finds depends on the priority an entry is logged at. A
@@ -516,7 +520,7 @@ sudo -u ibp-kiosk-print -g lp -H /var/lib/ibp-kiosk-print/.local/bin/ibp-print-s
 | Label journal, watcher state | `/home/kiosk/.local/state/ibp-printing/` |
 | Labels waiting to print | `/home/kiosk/Downloads/to-print/` (`printed/`, `check-printer/` next to it) |
 | Watcher journal | `sudo journalctl _SYSTEMD_USER_UNIT=ibp-kiosk-label-watcher.service` |
-| Print server | `journalctl -u ibp-kiosk-print-server`; `/var/lib/ibp-kiosk-print/.local/state/ibp-printing/logs/printer-print-server.log` |
+| Print server | `journalctl -u ibp-kiosk-print-server`; `/var/lib/ibp-kiosk-print/.local/state/ibp-printing/logs/printer-print-server.log` (copied to the share's `<hostname>/print-server/`) |
 | Log upload | `journalctl -u ibp-kiosk-log-upload`; journal export, cursor and last failed-units list in `/var/lib/ibp-kiosk-log-upload/` (root 0700) |
 
 ## Tested and not verified

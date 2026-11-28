@@ -1,7 +1,7 @@
 #!/bin/sh
-# ibp-kiosk-log-upload: copy the kiosk user's label-printer logs, and this
-# station's journal errors, to its Samba share on ibp-server, into a folder
-# named after this host. Run as root by ibp-kiosk-log-upload.service (every
+# ibp-kiosk-log-upload: copy the kiosk user's label-printer logs, the print
+# server's logs, and this station's journal errors, to its Samba share on
+# ibp-server, into a folder named after this host. Run as root by ibp-kiosk-log-upload.service (every
 # 15 minutes, from its timer), which gives it a private mount namespace, a
 # root-only runtime directory and a root-only state directory. Replaces the
 # Windows laptops' "IBP Log Upload" task (robocopy).
@@ -28,6 +28,9 @@ set -eu
 
 CONF=${IBP_KIOSK_LOG_UPLOAD_CONF:-/etc/ibp-kiosk/log-upload.conf}
 LOGS=${IBP_KIOSK_LOG_DIR:-/home/kiosk/.local/state/ibp-printing/logs}
+# The print server's, run as its own user: copied to <host>/print-server/,
+# so that no file name can clash with the kiosk user's.
+PRINT_LOGS=${IBP_KIOSK_PRINT_LOG_DIR:-/var/lib/ibp-kiosk-print/.local/state/ibp-printing/logs}
 RUN=${RUNTIME_DIRECTORY:-/run/ibp-kiosk-log-upload}
 STATE=${STATE_DIRECTORY:-/var/lib/ibp-kiosk-log-upload}
 KIOSK_USER=${IBP_KIOSK_LOG_UPLOAD_USER:-kiosk}
@@ -232,10 +235,12 @@ fi
 
 have_logs=
 [ -d "$LOGS" ] && have_logs=1
+have_print_logs=
+[ -d "$PRINT_LOGS" ] && have_print_logs=1
 have_journal=
 [ -n "$(ls -A "$SPOOL" 2>/dev/null)" ] && have_journal=1
-if [ -z "$have_logs$have_journal" ]; then
-    log "no logs yet ($LOGS) and no journal export; nothing to do"
+if [ -z "$have_logs$have_print_logs$have_journal" ]; then
+    log "no logs yet ($LOGS, $PRINT_LOGS) and no journal export; nothing to do"
     exit 0
 fi
 
@@ -288,6 +293,11 @@ mkdir -p "$mnt/$host"
 if [ -n "$have_logs" ]; then
     timeout 480 rsync -rt --modify-window=2 --timeout=60 "$LOGS/" "$mnt/$host/"
     log "copied $LOGS to $share/$host"
+fi
+if [ -n "$have_print_logs" ]; then
+    mkdir -p "$mnt/$host/print-server"
+    timeout 240 rsync -rt --modify-window=2 --timeout=60 "$PRINT_LOGS/" "$mnt/$host/print-server/"
+    log "copied $PRINT_LOGS to $share/$host/print-server"
 fi
 if [ -n "$have_journal" ]; then
     mkdir -p "$mnt/$host/journal"

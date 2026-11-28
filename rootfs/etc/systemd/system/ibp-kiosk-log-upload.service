@@ -23,6 +23,6 @@ RuntimeDirectoryMode=0700
 # waiting to be copied (journal/).
 StateDirectory=ibp-kiosk-log-upload
 StateDirectoryMode=0700
-TimeoutStartSec=15min
+TimeoutStartSec=20min
 Nice=10
 IOSchedulingClass=idle

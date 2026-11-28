@@ -78,7 +78,7 @@ this one grew from.
 | `ibp-kiosk-app wifi` | `nmtui` in the same kind of terminal (admin screen) |
 | `ibp-kiosk-app print-diag` | `ibp-print-diag` in the same kind of terminal, open until a key is pressed (admin screen) |
 | `ibp-kiosk-tool TOOL COMMAND` | Installs or upgrades shippy, shippy-gui or ibp-printing from its `deploy` branch as a uv tool, then runs COMMAND (`docs/apps.md`) |
-| `ibp-kiosk-log-upload` | Copies the label-printer logs to the station's Samba share, and first exports the journal's IBP entries at warning and above and the failed units to `<share>/<hostname>/journal/` (`docs/apps.md`, "Journal export"); run by `ibp-kiosk-log-upload.timer` |
+| `ibp-kiosk-log-upload` | Copies the label-printer logs (and the print server's, to `<hostname>/print-server/`) to the station's Samba share, and first exports the journal's IBP entries at warning and above and the failed units to `<share>/<hostname>/journal/` (`docs/apps.md`, "Journal export"); run by `ibp-kiosk-log-upload.timer` |
 | `ibp-kiosk-update` | Run as root by `ibp-kiosk-update.service` at boot: when the `deploy` branch of this repo has moved, clones it and runs its `setup.sh`; state in `/var/lib/ibp-kiosk/update` (`commit`, `src`, `status`) |
 | `ibp-kiosk-update stop` | The unit's `ExecStop=`: ends a run that is still checking; at a shutdown during `setup.sh`, shows "Finishing an update" on tty8 while the shutdown waits (up to 2 minutes) |
 | `ibp-kiosk-status network\|server\|printer-shipping\|printer-package\|printers\|update\|battery` | One status check (`printers` is both printer checks as one, the one the strip shows): exit 0 = fine, non-zero = problem; first line of stdout is a short text for the volunteer (`battery` prints nothing on a machine with no battery) |
