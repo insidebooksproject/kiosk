@@ -56,6 +56,8 @@ Firefox's low-memory settings on a machine with under 3 GiB of RAM.
 | Terminal tiles | A title bar that names the mode and has a large close button (2026-11-25), so the screen always says whether it is Ship Individual or Ship Bulk |
 | Updates of the station itself | Each station runs `setup.sh` from this repo's `deploy` branch at boot (2026-11-25), released like the apps; the repo is public so no credential is needed |
 | Host names | `ibp-<name>` with a Tolkien character (2026-11-25), instead of `ibp-laptop` and `ibp-laptop2` |
+| Package updates on battery | Left as Debian ships it (2026-11-26): `apt-daily` has `ConditionACPower=true` (seen on `ibp-bilbo`), so a station booted on battery skips that session's package updates |
+| Firefox bookmarks | None managed for now; whether to add some was put off (2026-11-25) |
 
 ## Design
 
