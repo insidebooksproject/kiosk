@@ -16,8 +16,8 @@
 # offline fallback. See docs/apps.md.
 #
 # TOOL is one of:
-#   shippy               shippy (CLI)
-#   shippy-gui           shippy-gui
+#   shippy               shippy[gui]: shippy (CLI) and shippy-gui
+#   shippy-gui           the same tool as shippy (kept for old callers)
 #   ibp-printing         ibp-printing[watcher]: ibp-label-watcher, ibp-print-diag
 #   ibp-printing-server  ibp-printing: ibp-print-server
 #
@@ -56,12 +56,11 @@ key=${1:-}
 shift
 
 case $key in
-shippy)
-    name=shippy label="shippy"
-    spec="shippy @ git+$GITHUB/shippy.git@deploy" ;;
-shippy-gui)
-    name=shippy-gui label="Ship Manual (shippy-gui)"
-    spec="shippy-gui @ git+$GITHUB/shippy-gui.git@deploy" ;;
+shippy | shippy-gui)
+    # One tool since shippy-gui merged into shippy (2026-11-28): the gui
+    # extra adds PySide6 and the shippy-gui command.
+    key=shippy name=shippy label="the shipping apps (shippy)"
+    spec="shippy[gui] @ git+$GITHUB/shippy.git@deploy" ;;
 ibp-printing)
     name=ibp-printing label="the label printer tools (ibp-printing)"
     spec="ibp-printing[watcher] @ git+$GITHUB/printing.git@deploy" ;;
@@ -102,6 +101,12 @@ if ! installed; then
     # Not installed, or installed from a different spec (an older version of
     # this script): install it fresh. Needs the network.
     printf 'Installing %s. The first time takes a few minutes...\n' "$label" >&2
+    # The separate shippy-gui tool from before the merge owns the
+    # shippy-gui and diagnose-printers commands, which shippy now provides.
+    if [ "$name" = shippy ] && [ -f "$UV_TOOL_DIR/shippy-gui/uv-receipt.toml" ]; then
+        "$UV" tool uninstall -q shippy-gui >&2 || true
+        rm -f "$STATE/shippy-gui.spec"
+    fi
     if [ -f "$receipt" ]; then
         reinstall=--reinstall
     else
