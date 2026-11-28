@@ -1,9 +1,10 @@
-# IBP station, feature shipping: copy the kiosk user's label-printer logs to
-# this station's Samba share on ibp-server. Started by
+# IBP station, feature shipping: copy the kiosk user's label-printer logs,
+# and the journal's IBP warnings and failed units, to this station's Samba
+# share on ibp-server. Started by
 # ibp-kiosk-log-upload.timer; replaces the Windows "IBP Log Upload" task.
 # Does nothing unless /etc/ibp-kiosk/log-upload.conf exists.
 [Unit]
-Description=Upload the IBP label-printer logs to the server
+Description=Upload the IBP label-printer logs and journal errors to the server
 ConditionPathExists=/etc/ibp-kiosk/log-upload.conf
 Wants=network-online.target
 After=network-online.target
@@ -18,6 +19,10 @@ PrivateMounts=yes
 PrivateTmp=yes
 RuntimeDirectory=ibp-kiosk-log-upload
 RuntimeDirectoryMode=0700
-TimeoutStartSec=10min
+# The journal export: its cursor, the last failed-units list, and the files
+# waiting to be copied (journal/).
+StateDirectory=ibp-kiosk-log-upload
+StateDirectoryMode=0700
+TimeoutStartSec=15min
 Nice=10
 IOSchedulingClass=idle
