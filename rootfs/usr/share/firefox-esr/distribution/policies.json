@@ -6,7 +6,7 @@
       },
       "book-portal-scanner@ibp.jstarr.me": {
         "installation_mode": "force_installed",
-        "install_url": "https://bookportal.jstarr.me/firefox/latest.xpi"
+        "install_url": "https://insidebooksproject.github.io/book-portal-extension/firefox/latest.xpi"
       }
     },
     "DNSOverHTTPS": {
