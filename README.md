@@ -46,10 +46,10 @@ It asks for anything required and unset:
 | `KIOSK_SSH_KEYS` | `authorized_keys` for `ibp`; default `~/.ssh/id_ed25519.pub` |
 | `KIOSK_TAILSCALE_AUTHKEY` | optional auth key: joins the tailnet as the hostname on first boot, then the key file is deleted. Use the IBP tailnet's station key (Bitwarden `tailscale insidebooksproject`, field `auth-key-station`) |
 | `KIOSK_UPDATE_BRANCH` | optional, not asked for: the branch the station updates itself from at boot (default `deploy`; empty turns updates off) |
-| `KIOSK_SHIPPY_CONFIG`, `KIOSK_SHIPPY_GUI_CONFIG` | the `config.ini` files for shippy and shippy-gui |
+| `KIOSK_SHIPPY_CONFIG` | the `config.ini` that shippy and shippy-gui share (Ship Individual, Ship Bulk, Ship Manual; `docs/apps.md`). The old `KIOSK_SHIPPY_GUI_CONFIG` is used in its place, with a warning, only when this is unset or empty, and ignored otherwise |
 | `KIOSK_LOG_SHARE`, `KIOSK_LOG_USER`, `KIOSK_LOG_PASSWORD` | the machine's Samba log share on ibp-server (`//host/share`) |
 
-For these three an empty answer leaves that file out; it can be
+For these two an empty answer leaves that file out; it can be
 added later by rerunning `setup.sh` with a secrets directory.
 
 The ISO holds the Wi-Fi password, the API keys and the admin password hash:

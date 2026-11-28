@@ -18,10 +18,9 @@
 # (https://github.com/insidebooksproject/kiosk).
 #
 # For testing, every path can be overridden from the environment
-# (IBP_KIOSK_CONF_DIR, IBP_KIOSK_SHIPPY_CONFIG, IBP_KIOSK_SHIPPY_GUI_DIR,
-# IBP_KIOSK_FIREFOX_DIR, IBP_KIOSK_FOOT_CONFIG, IBP_KIOSK_UV,
-# IBP_KIOSK_TOOL), and IBP_KIOSK_DRY_RUN=1 prints the command instead of
-# running it.
+# (IBP_KIOSK_CONF_DIR, IBP_KIOSK_SHIPPY_DIR, IBP_KIOSK_FIREFOX_DIR,
+# IBP_KIOSK_FOOT_CONFIG, IBP_KIOSK_UV, IBP_KIOSK_TOOL), and
+# IBP_KIOSK_DRY_RUN=1 prints the command instead of running it.
 set -u
 
 CONF_DIR=${IBP_KIOSK_CONF_DIR:-/etc/ibp-kiosk}
@@ -38,8 +37,11 @@ if [ -r "$CONF_DIR/apps.conf" ]; then
 fi
 PACKAGES_URL=${PACKAGES_URL:-${REQUESTS_URL%/}/packages}
 
-SHIPPY_CONFIG=${IBP_KIOSK_SHIPPY_CONFIG:-$CONF_DIR/shippy.ini}
-SHIPPY_GUI_DIR=${IBP_KIOSK_SHIPPY_GUI_DIR:-$HOME/.config/shippy-gui}
+# The one config of the three shipping tiles: shippy takes it with
+# --config; shippy-gui reads config.ini in its working directory and its
+# Settings dialog writes it there. setup.d/60-shipping.sh installs it.
+SHIPPY_DIR=${IBP_KIOSK_SHIPPY_DIR:-$HOME/.config/shippy}
+SHIPPY_CONFIG=$SHIPPY_DIR/config.ini
 FIREFOX_DIR=${IBP_KIOSK_FIREFOX_DIR:-$HOME/.local/share/ibp-kiosk/firefox}
 FOOT_CONFIG=${IBP_KIOSK_FOOT_CONFIG:-$CONF_DIR/foot.ini}
 UV=${IBP_KIOSK_UV:-/usr/local/bin/uv}
@@ -247,9 +249,9 @@ ship-individual | ship-bulk)
     terminal "$1" "Ship Individual"
     ;;
 ship-manual)
-    [ -r "$SHIPPY_GUI_DIR/config.ini" ] || die "Ship Manual is not set up on this machine: $SHIPPY_GUI_DIR/config.ini is missing or not readable. Ask an IBP admin."
+    [ -r "$SHIPPY_CONFIG" ] || die "Ship Manual is not set up on this machine: $SHIPPY_CONFIG is missing or not readable. Ask an IBP admin."
     need_uv "Ship Manual"
-    cd "$SHIPPY_GUI_DIR" || die "Can't open $SHIPPY_GUI_DIR."
+    cd "$SHIPPY_DIR" || die "Can't open $SHIPPY_DIR."
     # Native Wayland under labwc; XWayland only if that fails.
     export QT_QPA_PLATFORM="${QT_QPA_PLATFORM:-wayland;xcb}"
     # Qt's own option: the title labwc shows in the window's title bar,
