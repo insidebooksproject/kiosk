@@ -60,8 +60,10 @@ this one grew from.
   now; empty when none is), one of each per UTC day.
 - Log priorities: a line the launcher, `ibp-kiosk-app` or
   `ibp-kiosk-update` logs as a warning or error goes to the journal at that
-  priority (a `<N>` prefix, or `logger -p`), since the log upload exports
-  only warning and above. Output at info (what the tiles print) stays on
+  priority (a `<N>` prefix, or `logger -p`; the launcher sends each record,
+  traceback included, as one entry through journald's socket with
+  identifier `ibp-kiosk`), since the log upload exports only warning and
+  above. Output at info (what the tiles print) stays on
   the station.
 - Users: `ibp` (admin, sudo, SSH keys only, created by the installer) and
   `kiosk` (no password, autologin on tty1, runs the session).

@@ -475,8 +475,11 @@ run limit, the copies).
 
 What the export finds depends on the priority an entry is logged at. A
 service's or `systemd-cat`'s output is logged at info unless a line starts
-with a syslog prefix such as `<3>`: the launcher adds one to its own log
-lines when its stderr is the journal (`JOURNAL_STREAM`), `ibp-kiosk-app`
+with a syslog prefix such as `<3>`. The launcher, when its stderr is the
+journal (`JOURNAL_STREAM`), writes each of its log records as one entry
+through journald's socket instead, at the record's priority, a traceback in
+the same `MESSAGE` (cut to 4000 bytes: the first line and the last ones),
+with identifier `ibp-kiosk`; `ibp-kiosk-app`
 logs an app that stopped with an error at `err`, and so does
 `ibp-kiosk-update` a failed update. What the tiles' apps print goes to the
 journal at info and is not exported; their errors reach the share through
