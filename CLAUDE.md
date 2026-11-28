@@ -253,6 +253,22 @@ old `portal` install (`e62aa7d`) updated by its boot updater from a local
 reboot at the end of a rerun shut down in 2 s; a reboot during the first,
 longer run (apt and the app installs) was not caught.
 
+Tested in the VM 2026-11-28 before `deploy` moved from `1fafee0` to
+`fbc9b9b` (4 GB, `KIOSK_TEST=1`): a station in the old layout (separate
+`shippy` and `shippy-gui` uv tools, two configs) updated itself from a local
+`main` in 6 s, replaced the two tools with one `shippy[gui]`, and copied the
+GUI config to `/home/kiosk/.config/shippy/config.ini` (kiosk 0600, old files
+kept); Ship Individual, Ship Bulk and Ship Manual started on it; Ship
+Manual's Settings, Save rewrote it and Ship Individual still read it; a
+fresh install from `main`; a rerun with an old stick's two secrets kept the
+migrated file; a reboot during the real `shippy[gui]` install showed
+"Finishing an update" on tty8 and recorded the update, and a power cut
+there redid it at the next boot; the extension came from the GitHub Pages
+URL at 0.7.1 (a profile already on 0.7.1 from the old URL keeps it; later
+versions arrive through its `update_url`). Since shippy's merge (2026-11-28)
+a fresh install from `1fafee0` couldn't install the separate shippy-gui
+tool ("Executables already exist"); `fbc9b9b` fixes that.
+
 Known rough edges:
 - A bad or missing Google Maps key makes shippy-gui exit with a Python
   traceback, which the launcher's failure screen shows as is.
