@@ -420,21 +420,21 @@ JSONL, one per UTC day:
   system unit, the label watcher (a user unit), and systemd's own messages
   about those units (a failed run, a restart). `journalctl -F` finds the
   values, so a new `ibp-` unit is included without a change here.
-- `failed-units-<YYYY-MM-DD>.jsonl`: the failed units (`systemctl
+- `failed-units-<YYYY-MM-DD>.jsonl`: the units failed now (`systemctl
   --failed`, the system's and the `kiosk` user manager's when it runs),
-  written only when the list differs from the last one written. Each line
-  is shaped like a journal entry: `__REALTIME_TIMESTAMP` (microseconds,
-  one value for the whole list), `_HOSTNAME`, `SYSLOG_IDENTIFIER`
-  `ibp-kiosk-log-upload`, `PRIORITY` `3`, `MESSAGE` `<unit> failed`, and
-  `UNIT` (system) or `USER_UNIT` (kiosk's) with the unit's name. A list
-  that becomes empty is one line, `PRIORITY` `6`, `MESSAGE` `no failed
-  units`, with neither field. The station's state at a moment is the last
-  list written before it.
+  rewritten whole at every run, so the day's file is that day's last list
+  and a unit that stays failed is in the file of every day the station
+  runs. Each line is shaped like a journal entry: `__REALTIME_TIMESTAMP`
+  (microseconds, one value for the whole list, the run's time),
+  `_HOSTNAME`, `SYSLOG_IDENTIFIER` `ibp-kiosk-log-upload`, `PRIORITY` `3`,
+  `MESSAGE` `<unit> failed`, and `UNIT` (system) or `USER_UNIT` (kiosk's)
+  with the unit's name. Nothing failed is an empty file: emptied rather
+  than removed, since the share (no `--delete`) would keep a list written
+  earlier that day. When a list can't be read, the file stays as it was.
 
 The journal's place is kept by `journalctl --cursor-file`
 (`/var/lib/ibp-kiosk-log-upload/cursor`), saved only once the entries are
-in the day's file, so a run that fails part-way exports them again. The
-last failed-units list is `failed-units` next to it.
+in the day's file, so a run that fails part-way exports them again.
 
 What it doesn't break:
 
@@ -521,7 +521,7 @@ sudo -u ibp-kiosk-print -g lp -H /var/lib/ibp-kiosk-print/.local/bin/ibp-print-s
 | Labels waiting to print | `/home/kiosk/Downloads/to-print/` (`printed/`, `check-printer/` next to it) |
 | Watcher journal | `sudo journalctl _SYSTEMD_USER_UNIT=ibp-kiosk-label-watcher.service` |
 | Print server | `journalctl -u ibp-kiosk-print-server`; `/var/lib/ibp-kiosk-print/.local/state/ibp-printing/logs/printer-print-server.log` (copied to the share's `<hostname>/print-server/`) |
-| Log upload | `journalctl -u ibp-kiosk-log-upload`; journal export, cursor and last failed-units list in `/var/lib/ibp-kiosk-log-upload/` (root 0700) |
+| Log upload | `journalctl -u ibp-kiosk-log-upload`; journal export and its cursor in `/var/lib/ibp-kiosk-log-upload/` (root 0700) |
 
 ## Tested and not verified
 
@@ -574,10 +574,11 @@ is in `CLAUDE.md`, "State"):
   copies them); a garbage cursor (deleted, warning at priority 4 under
   `systemd-cat`, logs still copied); journalctl failing (logs still
   copied); no label-printer log directory (journal still copied). The
-  failed-units list with a stand-in `systemctl` and `setpriv`: first list,
-  unchanged (nothing written), a change with system and user units (one of
-  them with `\x2d` and quotes, valid JSON), a user listing that fails
-  (nothing written, warning), and cleared.
+  failed-units list with a stand-in `systemctl` and `setpriv`: nothing
+  failed (an empty file), system and user units (one of them with `\x2d`
+  and quotes, valid JSON), the same list at the next run (rewritten with
+  the new time, and copied to the share), a user listing that fails (the
+  file unchanged, a warning), and cleared (emptied, also on the share).
 - `systemd-analyze verify` on the units (no errors besides the scripts not
   being installed on the build machine).
 

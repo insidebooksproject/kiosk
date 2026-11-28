@@ -48,9 +48,14 @@ this one grew from.
   `/usr/local/lib/ibp-kiosk/ibp_kiosk/` and run with the system `python3` and
   Debian's PySide6 packages (no venv, no network needed to start it).
 - `/var/lib/ibp-kiosk-log-upload/` (root 0700, the upload's
-  `StateDirectory=`): the journal export's `cursor`, the last
-  `failed-units` list, and `journal/`, the files waiting to be copied
-  (kept 30 days).
+  `StateDirectory=`): the journal export's `cursor` and `journal/`, the
+  files waiting to be copied (kept 30 days); its temporary
+  `failed-units.tmp` sits beside them, never in `journal/`.
+- The journal export's files on the share (the digest on ibp-server reads
+  them, `docs/apps.md`, "Journal export"): `<hostname>/journal/` holds
+  `journal-<date>.jsonl` (entries appended) and
+  `failed-units-<date>.jsonl` (rewritten at every run with the units failed
+  now; empty when none is), one of each per UTC day.
 - Log priorities: a line the launcher, `ibp-kiosk-app` or
   `ibp-kiosk-update` logs as a warning or error goes to the journal at that
   priority (a `<N>` prefix, or `logger -p`), since the log upload exports

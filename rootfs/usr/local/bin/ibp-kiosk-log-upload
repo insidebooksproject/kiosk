@@ -14,8 +14,8 @@
 # Values may be in single or double quotes. The file is read, not sourced.
 #
 # Before copying, it exports the journal into the state directory
-# (journal/, below): the IBP entries at warning or above since its last run
-# and, when it changed, the list of failed units. Those files are copied to
+# (journal/, below): the IBP entries at warning or above since its last run,
+# and the units failed now. Those files are copied to
 # <share>/<host>/journal/. The export is best effort: when it fails, the
 # logs are still copied; when the share can't be reached, the files wait in
 # the state directory for the next run. docs/apps.md, "Log upload", has the
@@ -180,37 +180,35 @@ failed_units() {
     } | LC_ALL=C sort
 }
 
-# When the failed units differ from the last list written (or none was),
-# append the new list to today's failed-units-<date>.jsonl: one line per
-# unit, shaped like a journal entry (UNIT or USER_UNIT names it), or one
-# "no failed units" line.
+# Rewrite today's failed-units-<date>.jsonl with the units failed now: one
+# line per unit, shaped like a journal entry (UNIT or USER_UNIT names it),
+# or an empty file when none is. Every run rewrites it, so a unit that stays
+# failed is in the file of each day the station runs, and the day's file is
+# the last list of that day. It is emptied, not removed, when nothing is
+# failed: the share would otherwise keep the list written earlier that day
+# (no --delete). Written to a temporary file and renamed, so it is never
+# half-written. A list that can't be read leaves the file as it was.
 export_failed_units() {
     list=$(failed_units) || {
         warn "failed units: could not list them"
         return 1
     }
-    if [ -f "$STATE/failed-units" ] &&
-        [ "$list" = "$(cat "$STATE/failed-units")" ]; then
-        return 0
-    fi
     now=$(date -u '+%s%6N %Y-%m-%d') || return 1
     stamp=${now% *}
     file=$SPOOL/failed-units-${now#* }.jsonl
     host=$(json_escape "$(uname -n)")
-    start='{"__REALTIME_TIMESTAMP":"'$stamp'","_HOSTNAME":"'$host'","SYSLOG_IDENTIFIER":"ibp-kiosk-log-upload"'
+    start='{"__REALTIME_TIMESTAMP":"'$stamp'","_HOSTNAME":"'$host'","SYSLOG_IDENTIFIER":"ibp-kiosk-log-upload","PRIORITY":"3"'
+    tmp=$STATE/failed-units.tmp
     {
-        if [ -z "$list" ]; then
-            printf '%s,"PRIORITY":"6","MESSAGE":"no failed units"}\n' "$start"
-        else
+        if [ -n "$list" ]; then
             printf '%s\n' "$list" | while read -r field unit; do
                 unit=$(json_escape "$unit")
-                printf '%s,"PRIORITY":"3","MESSAGE":"%s failed","%s":"%s"}\n' \
-                    "$start" "$unit" "$field" "$unit"
+                printf '%s,"MESSAGE":"%s failed","%s":"%s"}\n' \
+                    "$start" "$unit" "$field" "$unit" || exit 1
             done
         fi
-    } >>"$file" || return 1
-    printf '%s\n' "$list" >"$STATE/failed-units.new" || return 1
-    mv "$STATE/failed-units.new" "$STATE/failed-units" || return 1
+    } >"$tmp" || return 1
+    mv "$tmp" "$file" || return 1
 }
 
 # ----------------------------------------------------------------- main
