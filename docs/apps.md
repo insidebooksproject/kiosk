@@ -615,12 +615,9 @@ Not verified (needs the VM or the hardware):
   (expected to work; see above).
 - Log upload against the real share (mount.cifs, rsync onto SMB, the
   `<hostname>` folder).
-- The journal export on a station (not VM-tested yet): as root under the
-  unit (`StateDirectory=`, `JOURNAL_STREAM`), on Debian 13's systemd 257
-  (the `-n` with `--cursor-file` paging was checked on 255 only: two runs
-  with nothing new must export nothing), `setpriv` reading the `kiosk` user
-  manager's failed units, and the launcher's `<N>` prefixes reaching the
-  journal through labwc.
+- The journal export on real hardware and against the real share (tested
+  in the VM 2026-11-28, as root under the unit, on systemd 257, against a
+  local Samba share: `CLAUDE.md`, "State").
 - The print server under the service user, `IPAddressDeny` and
   `SupplementaryGroups=lp` (the same server prints directly on the intake
   station since 2026-11-26).

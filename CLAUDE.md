@@ -286,16 +286,52 @@ a fresh install from `1fafee0` couldn't install the separate shippy-gui
 tool ("Executables already exist"); `fbc9b9b` fixes that.
 
 The journal export in `ibp-kiosk-log-upload` (2026-11-28, the error
-reporting in the IBP workspace's `docs/error-reporting.md`) is **not
-VM-tested yet**: it ran only on the build machine (systemd 255, not as
-root, a stand-in `mount` and `systemctl`; `docs/apps.md`, "Tested"). Before
-`deploy` moves past it, check in the VM as root under the unit: a first
-run and a second with nothing new (exports nothing: the `-n` paging with
-`--cursor-file` is checked on 255 only, Debian 13 has 257), the files on a
-share (or a local Samba), the share unreachable then back, the `kiosk`
-user's failed units through `setpriv`, the launcher's and `ibp-kiosk-app`'s
-errors at priority 3, and the label-printer logs still copied when the
-export fails.
+reporting in the IBP workspace's `docs/error-reporting.md`) was tested in
+the VM 2026-11-28 at `dad3c28` (4 GB, `KIOSK_TEST=1`, Debian 13.8, systemd
+257, dummy credentials; `deploy` not yet moved, still `b0aa5eb`): a fresh
+install booted into the launcher with all six tiles. Run as root under
+its unit (from the timer, then `systemctl start`), the export wrote the
+`ibp-kiosk-app` and `ibp-kiosk` entries at warning and above, and systemd's
+"Failed with result" for a failing system unit and a failing `kiosk` user
+unit, but not an info entry or one from another identifier; the
+failed-units file held both units (`UNIT`, and `USER_UNIT` through
+`setpriv`). With the test ISO's unresolvable share, and again with the
+VM's own Samba stopped, the unit failed after the mount error and the
+files waited in the spool; with the share back they were copied
+byte-identical to `<share>/test-station/journal/`, beside the label
+watcher's and the print server's logs. A second run with nothing new left
+the day file and the cursor unchanged (`-n` with `--cursor-file` works on
+257). Units reset: the failed-units file was emptied, on the share too. An
+export made to fail (a directory where `journal.tmp` goes) logged "journal
+export failed; going on with the upload" at warning and the label-printer
+logs were still copied; the next run exported the waiting entry once. The
+launcher's failure screen (Ship Manual killed) and `ibp-kiosk-app`'s
+"shippy stopped with exit status 137" reached the journal at priority 3
+and the share. After all the runs and reboots the day file had 19 entries
+and no repeated `__CURSOR`. The journal is persistent: journald.conf
+leaves `Storage=` at its default (`auto`), and Debian creates
+`/var/log/journal/<machine-id>/`, so earlier boots stay readable
+(`journalctl --list-boots`). The boot updater then followed a root-owned
+bare repo in the VM (`UPDATE_URL=/srv/kiosk-test.git`; a repo owned by
+`ibp` fails git's ownership check under the unit, though not under
+`sudo`) with a local branch whose `40-apply.sh` sleeps 45 s before its
+live changes. A reboot during that sleep in a real `setup.sh` run showed
+"Finishing an update" on tty8, waited out the sleep (47 s from the
+reboot to the journal stopping), skipped every live change ("shutting
+down; skipped"), recorded the update and went on; no hang. The next
+update (to `dad3c28`) completed in 6 s with the live changes applied and
+the launcher left running (same pid). After a reboot: the launcher with
+every tile, the system `running` with no failed units, the print server,
+CUPS, the label watcher and the log-upload timer active, and the timer's
+run 2 minutes after boot exported a new entry and a new failed unit. A
+reboot while the updater was still checking took 2 s.
+
+Seen in that run: while `setup.sh` copies `rootfs/` (before its `chmod`
+loop), `/usr/local/bin` scripts are briefly not executable, so a status
+check that runs then fails with "Permission denied" (once per chip, in one
+of two updates). That has always been so; since the journal export the
+launcher logs it at priority 3, so the digest will see these errors at an
+update.
 
 Known rough edges:
 - A bad or missing Google Maps key makes shippy-gui exit with a Python
